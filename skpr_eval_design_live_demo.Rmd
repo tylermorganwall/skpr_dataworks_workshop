@@ -1,0 +1,479 @@
+---
+title: "Design Evaluation"
+output: html_document
+date: "2023-02-21"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+
+# Load our libraries
+
+```{r}
+library(skpr)
+library(tidyverse)
+#Set default contrasts to sum contrasts
+options(contrasts = rep("contr.sum", 2))     
+```
+
+# Loading our design
+
+skpr designs are R data.frames, so we can load in an external CSV file and skpr can use that as a design. We'll also make sure our candidate set is available to generate new designs as well.
+
+```{r}
+candidate_set = expand.grid(altitude    = seq(10000,30000,by=1000),
+                            speed       = seq(450,550,by=5),
+                            mode        = c("scan", "strip", "spotlight"),
+                            target_env = c("urban", "desert"))
+
+constrained_candidate_set = candidate_set |> 
+  filter(70000 - speed * 90 > altitude) |> 
+  filter(-430000 + speed * 1000 > altitude) |> 
+  filter(150000 - speed * 300 < altitude)  |> 
+  filter(-14000 + speed * 50 < altitude)
+
+design_final = read.csv("design_final.csv")
+design_final
+```
+
+Let's first start by talking about our response variable. We are going to treat our NIIRS rating as a continuous response, and we want to characterize how that rating changes as a function of altitude, mode, and speed. Our model includes a quadratic term to see if there is any curvature present. Let's run this power analysis with `eval_design()`.
+
+Our goal is 80% power in all model terms. Let's see how we do, with the assumption that we are going to fit a linear model to the data and our design is fairly well balanced.
+
+```{r}
+eval_design(design = design_final,
+            model = ~ (altitude + speed + mode)^2 + I(speed^2) + I(altitude^2),
+            alpha = 0.05,
+            effectsize = 2)
+```
+
+Here we see our design and model, but we also have two new arguments: `alpha` and `effectsize`. `alpha` is the Type-I error, and `effectsize` is here stated as an signal to noise ratio (SNR) of 2. Let's look at the slides for some more information on effect size.
+
+Let's say we know (based on previous tests) to expect an intrinsic variation of about 1 NIIRS point from run to run, independent of the experimental factors. An effect size of 2 then corresponds to being able to detect a difference of 2 NIIRS points. Let's also say that we must confirm that our system produces images within 1 point on the NIIRS scale--our effect size should then be halved.
+
+```{r}
+eval_design(design = design_final,
+            model = ~ (altitude + speed + mode)^2 + I(speed^2) + I(altitude^2),
+            alpha = 0.05,
+            effectsize = 1)
+```
+
+Here, let's say our organization is willing to accept the risk that we call the system effective at 80% confidence instead of 95%: This means we will set our alpha to 0.2. This change (along with requiring 80% power) means we are saying we will accept either a false positive or false negative with equal probability.
+
+```{r}
+eval_design(design = design_final,
+            model = ~ (altitude + speed + mode)^2 + I(speed^2) + I(altitude^2),
+            alpha = 0.2,
+            effectsize = 1)
+```
+
+We see here we still don't have enough power in some of the terms--let's generate some new designs and see how many runs we need in order to reach 80% power everywhere.
+
+```{r}
+set.seed(2023)
+gen_design(candidateset = constrained_candidate_set,
+           model = ~ (altitude + speed + mode)^2 + I(speed^2) + I(altitude^2),
+           trials = 100) |> 
+  eval_design(alpha=0.2, effectsize = 1)
+
+set.seed(2023)
+gen_design(candidateset = constrained_candidate_set,
+           model = ~ (altitude + speed + mode)^2 + I(speed^2) + I(altitude^2),
+           trials = 150) |> 
+  eval_design(alpha=0.2, effectsize = 1)
+
+set.seed(2023)
+gen_design(candidateset = constrained_candidate_set,
+           model = ~ (altitude + speed + mode)^2 + I(speed^2) + I(altitude^2),
+           trials = 200) |> 
+  eval_design(alpha=0.2, effectsize = 1)
+
+```
+
+We can also include the effect of blocking terms by setting `blocking = TRUE`. This accounts for the split-plot structure and allows more accurate estimates of power for the hard-to-change terms, which will usually have lower power than the easy-to-change terms in the model.
+
+```{r}
+htc_design = gen_design(candidateset = constrained_candidate_set,
+                        model = ~target_env,
+                        trials=10) 
+
+gen_design(candidateset = constrained_candidate_set,
+             model = ~ (altitude + speed + mode + target_env)^2 + I(speed^2) + I(altitude^2),
+             trials = 200, parallel = FALSE, splitplotdesign = htc_design, repeats = 1) ->
+split_plot_design 
+
+
+#Compare estimates 
+eval_design(split_plot_design, alpha = 0.2, effectsize = 1)
+```
+
+# Calculate Power Curves
+
+skpr provides an easier and more informative method of exploring power than iteratively walking though different design sizes manually: the `calculate_power_curves()` function. This function automatically generates an optimal design for a given candidate set and number of runs, and plots the resulting power curves across all powers and effect sizes. Let's see it in action:
+
+```{r, fig.width=12,fig.height=6}
+power_values = calculate_power_curves(trials = seq(10,200,by=10),
+                       candidateset = constrained_candidate_set,
+                       model = ~ (altitude + speed + mode)^2 + I(speed^2) + I(altitude^2),
+                       effectsize = 1,
+                       x_breaks =  seq(10,200,by=10),
+                       alpha = 0.2,
+                       ggplot_elements = list(geom_hline(yintercept = 0.8, 
+                                                         alpha = 0.5, 
+                                                         linetype = "dashed", 
+                                                         color = "red", 
+                                                         linewidth = 1)))
+```
+
+This graph tells us a great deal about our test resource/model-complexity trade space: the two clustered groups of power curves delineates a clear decision we can make regarding resource allocation. If we aren't actually interested in modelling curvature, we will have 80% power in all main effect terms and all interactions except `altitude:speed` at about 90 runs. Otherwise, we need to more than double our test resources to 200 runs to have an adequate test. Is 2x the number of experimental runs worth modeling curvature? Let's say we have theoretical or historical justification that says it isn't, and re-run our analysis with a smaller model.
+
+```{r, fig.width=12,fig.height=6}
+power_values = calculate_power_curves(trials = seq(10,200,by=10),
+                       candidateset = constrained_candidate_set,
+                       model = ~ (altitude + speed + mode)^2,
+                       effectsize = 1,
+                       x_breaks =  seq(10,200,by=10),
+                       alpha = 0.2,
+                       ggplot_elements = list(geom_hline(yintercept = 0.8, 
+                                                         alpha = 0.5, 
+                                                         linetype = "dashed", 
+                                                         color = "red", 
+                                                         linewidth = 1)))
+```
+
+We now see we need about 120 runs to have a well-powered test for all main effects and interactions. Note that by removing the quadratic terms, the number of runs to estimate the `altitude:speed` interaction decreased greatly, from 200 to 120 runs. This shows that small changes to the model can have dramatic effects on power, even when you're dealing with a relatively large test.
+
+You might have also noticed we have two different types of powers reported: "effect.power" and "parameter.power". What's the difference? Let's see the slides.
+
+To better explain this, let's make up some fake results for our test and simulate conducting an analysis to demonstrate in real-world terms what these types of power are actually referring to. We'll generate some fake data and fit a linear model (using `lm()`) and . For both parameter and effect power, we need to specify a model: here, we'll include all main effects and 2nd order interactions. Since we're including interactions in our model, we should normalize the numeric terms in our model to -1 to 1, which helps prevent correlation between terms. We can do this with the skpr helper function `normalize_design()`.
+
+```{r}
+set.seed(123)
+design_90runs = gen_design(candidateset = constrained_candidate_set,
+                            model = ~ (altitude + speed + mode)^2,
+                            trials = 72)
+
+eval_design(design_90runs, effectsize = 1, alpha=0.2)
+
+#Note the dramatic improvement in correlation when you standardize the numeric columns
+plot_correlations(design_90runs, standardize = FALSE)
+plot_correlations(design_90runs)
+
+#So we will always normalize
+simulated_results_design = normalize_design(design_90runs)
+set.seed(123)
+#Create fake NIIRS results (where null hypothesis is true--no factor influences the response)
+simulated_results_design$NIIRS = rnorm(n = nrow(design_90runs), sd = 1, mean = 4)
+simulated_results_design
+
+lm(formula =  NIIRS ~ (altitude + speed + mode)^2,
+           data = simulated_results_design) |> 
+  summary()
+```
+
+For parameter power, we see we get p-values telling us the significance of each factor. Importantly, regression also gives us coefficients for each model term, which allows us to characterize performance across the test space and make statements like "Traveling at speed X and altitude Y decreases or increases performance by N NIIRS points".
+
+Effect power looks at the significance of the model terms themselves. Running an ANOVA is a subset of regression--we still fit a linear model--but ANOVA looks to see how much of the total variance is explained by each of the predictors.
+
+```{r}
+#Now let's look at effect power--first, Type-III ANOVA
+lm(formula =  NIIRS ~ (altitude + speed + mode)^2,
+   data = simulated_results_design) |> 
+  car::Anova(type = "III")
+```
+
+Similarly, you can do a likelihood ratio test between two models (one with and one without the term in question) and see if the difference is significant.
+
+```{r}
+#Example: p-value for altitude:mode is approximately 0.76--let's see what it is under a likelihood ratio test
+
+formula_full =  NIIRS ~ (altitude + speed + mode)^2 
+formula_reduced =  NIIRS ~ (altitude + speed + mode)^2 - altitude:mode
+
+fit_full = lm(formula =  formula_full, data = simulated_results_design)
+fit_reduced = lm(formula =  formula_reduced, data = simulated_results_design)
+
+#Compare the outputs of the two models
+diffobj::diffPrint(summary(fit_full),summary(fit_reduced), interactive = FALSE)
+
+lmtest::lrtest(fit_full, fit_reduced)
+
+```
+
+Notice we had some significant effects in both effect and parameter terms in our simulated model fit, even though we were fitting nothing but noise. Were these real, or just a result of our acceptable type-I error rate of 20%? To figure this out, we can repeat the process of fitting our design with noise and see if we end up with 20% of the runs being marked as significant by chance. We'll do this with a simple `for` loop that repeatedly generates noise and fits the model and counts the number of times each term is marked as significant, and then divide this number by the total number of simulations.
+
+```{r}
+lm(formula =  NIIRS ~ (altitude + speed + mode)^2,
+             data = simulated_results_design) |> 
+    summary() |> 
+  coef() |> 
+  rownames() ->
+model_terms
+#See model terms
+model_terms
+
+is_significant = rep(0,length(model_terms))
+names(is_significant) = model_terms
+is_significant
+
+for(i in 1:1000) {
+  set.seed(i)
+  #Create fake NIIRS results (where null hypothesis is true--no factor influences the response)
+  simulated_results_design$NIIRS = rnorm(n = nrow(design_90runs), sd = 1, mean = 4)
+  
+  lm(formula =  NIIRS ~ (altitude + speed + mode)^2,
+             data = simulated_results_design) |> 
+    summary() |> 
+    coef() ->
+  fit_coefficients 
+  pvals = fit_coefficients[,4] #p-values
+  
+  #Add 1 to the term if significant
+  is_significant = is_significant + ifelse(pvals < 0.2, 1, 0) 
+}
+#Without normalizing to the number of runs
+is_significant
+#Normalized
+is_significant/1000
+```
+
+We see that our model fitting process indeed marks all terms as significant about 20% of the time, as expected given our Type-I error value.
+
+What if we actually "activated" some of these effects? We can do this by shifting the simulated resulting NIIRS score proportional to the factors in the design matrix. Since the design is coded from -1 to 1 (a width of 2), we'll set the coefficients for `speed`, `altitude`, and the interaction between `speed` and `altitude` to 0.5 to get an effect size of 1. This means that when the `altitude`, `speed`, and `altitude:speed` is at their highest values, we will see a shift of 1 NIIRS point compared to when they are at their lowest.
+
+```{r}
+set.seed(143)
+#Create fake NIIRS results (where altitude and speed and altitude:speed are active effects)
+simulated_results_design$NIIRS = rnorm(n = nrow(design_90runs), sd = 1, mean = 4) + 
+  0.5 * simulated_results_design$altitude + 
+  0.5 * simulated_results_design$speed +
+  0.5 * (simulated_results_design$speed * simulated_results_design$altitude)
+
+lm(formula =  NIIRS ~ (altitude + speed + mode)^2,
+           data = simulated_results_design) |> 
+  summary()
+```
+
+After analyzing the data, we see all the terms were indeed marked as significant! To see if this was just a fluke, let's repeat the process like we did before with new sets of noise.
+
+```{r}
+options(contrasts = rep("contr.sum", 2))   
+lm(formula =  NIIRS ~ (altitude + speed + mode)^2,
+             data = simulated_results_design) |> 
+    summary() |> 
+  coef() |> 
+  rownames() ->
+model_terms 
+
+is_significant = rep(0,length(model_terms))
+names(is_significant) = model_terms
+
+for(i in 1:10000) {
+  set.seed(i) 
+  #Create fake NIIRS results (where altitude and speed and altitude:speed are active effects)
+  simulated_results_design$NIIRS = rnorm(n = nrow(design_90runs), sd = 1, mean = 4) + 
+    0.5 * simulated_results_design$altitude + 
+    0.5 * simulated_results_design$speed +
+    0.5 * (simulated_results_design$speed * simulated_results_design$altitude)
+  
+  lm(formula =  NIIRS ~ (altitude + speed + mode)^2,
+             data = simulated_results_design) |> 
+    summary() |> 
+    coef() ->
+  fit_coefficients 
+  pvals = fit_coefficients[,4] #p-values
+  is_significant = is_significant + ifelse(pvals < 0.2, 1, 0) 
+}
+is_significant/10000
+
+eval_design(design_90runs, effectsize = 1, alpha=0.2)
+```
+
+Note the our simulation produced values for `altitude`, `speed`, and `altitude:speed` that are almost identical to the parametric power values calculated with `eval_design()`! And that's because, with this simulation, power is exactly what we've computed; we know an effect exists and we have computed the probability that we are able to detect it with our design and analysis methods, which is the definition of statistical power. We did this with what's called a Monte Carlo technique: we used repeated random sampling to calculate our result, rather than developing an analytic solution for power. What's really powerful about this method is how closely linked it is with the actual analysis techniques: we are using the exact same functions to generate power estimates that we plan on using during our actual analysis. This means we have a strong justification for these numbers being accurate, and we didn't need to make any approximations or simplifying assumptions along the way.
+
+A Monte Carlo power interface has been implemented in skpr via the function `eval_design_mc()`: it automates the above process and automatically transforms your design into the correct format, runs the simulation using the specified effect size, and then fits the results depending on what type of analysis you intend on performing. Let's check out the slides and then dive in.
+
+# Monte Carlo power evaluation
+
+`eval_design_mc()` has an identical interface to `eval_design()`, but with additional options to support far more types of responses, designs, and analytic methods. Let's run through an example, first starting with an identical model to `eval_design()`.
+
+```{r}
+eval_design(design = design_90runs,
+            model = ~ (altitude + speed + mode)^2,
+            alpha = 0.2,
+            effectsize = 1)
+eval_design_mc(design = design_90runs,
+               model = ~ (altitude + speed + mode)^2,
+               alpha = 0.2,
+               effectsize = 1,
+               glmfamily = "gaussian",
+               nsim = 100)
+```
+
+Since this is a Monte Carlo estimate of power, there is sampling error of magnitude `1/sqrt(100) = 0.1` associated with these estimates. To decrease this error, we can simply increase the number of simulations. Increasing `nsim` to 1000 will lower the magnitude of the error to 0.03.
+
+```{r}
+eval_design_mc(design = design_90runs,
+               model = ~ (altitude + speed + mode)^2,
+               alpha = 0.2,
+               effectsize = 1,
+               glmfamily = "gaussian",
+               nsim = 1000)
+```
+
+The primary utility for `eval_design_mc()` isn't with normal responses, however.
+
+If our response variable is binomial and we are evaluating a probability (such as the probability of correctly classifying an aircraft in our SAR image), we can use a generalized linear model to perform a logistic regression to estimate those probabilities directly. To estimate power for this model, we simply change `glmfamily` to `"binomial"` in `eval_design_mc()`, and specify our `effectsize` as a low and high probability. We'll say here we are looking to detect when the probability of correctly classifying an aircraft in a SAR image changes from 0.50 to 0.90. There's no closed-form solution for calculating this, but there are some approximate methods available. One common method is to calculate an approximate signal-to-noise ratio for the two probabilities and then perform a traditional power calculation using that SNR. How well does this work?
+
+```{r}
+#Calculate SNR approximation using "logit" method
+high_prob = 0.9
+low_prob = 0.5
+average_prob = (high_prob + low_prob)/2
+
+delta = abs(log(low_prob/(1-low_prob)) - log(high_prob/(1-high_prob)))
+noise = sqrt(average_prob/(1-average_prob))
+snr_approximation = delta/noise
+
+eval_design(design = design_90runs,
+             model = ~ (altitude + speed + mode)^2,
+             alpha = 0.2,
+             effectsize = snr_approximation)
+
+eval_design_mc(design = design_90runs,
+               model = ~ (altitude + speed + mode)^2,
+               alpha = 0.2,
+               effectsize = c(0.5,0.9),
+               glmfamily = "binomial", 
+               nsim = 1000)
+```
+
+The calculated power values don't match. Even worse, our power values are falling below our acceptable Type-I error rate of 0.2, which suggests a more fundamental issue is at play. A warning message after `eval_design_mc()` gives us a clue why: "Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power." Separation is an issue you can encounter in logistic regression when your model perfectly predicts the outcome for some combination of parameters and does not converge. The approximate method does not capture problems like this: you would only know about this issue if you ran a simulation ahead of time. And since we know about it, we can : let's add a Firth correction to the logistic regression by setting `firth = TRUE`, which removes the issue of separation and allows the model to converge and give us useful power estimates. Since the Firth correction is more computationally expensive, we'll also turn on parallel processing to speed up the computation.
+
+```{r}
+eval_design_mc(design = design_90runs,
+               model = ~ (altitude + speed + mode)^2,
+               alpha = 0.2,
+               effectsize = c(0.5,0.9),
+               glmfamily = "binomial", 
+               firth = TRUE,
+               nsim = 1000, 
+               parallel=TRUE)
+```
+
+Now we've improved our power substantially, but note that it still isn't close to the extremely optimistic power values given using the approximate method.
+
+# Checking for Type-I error inflation
+
+Let's say we get tasked to find the absolute bare-minimum test we could execute and still find adequate. As part of that tasking, you start playing with various design sizes, removing model terms, increasing effect sizes, and changing analysis methods to try and achieve 80% power. You discover you need at least 6 runs to fit any model, so you take that design and discover something interesting when you switch from a Type-III ANOVA to a likelihood ratio test for power evaluation:
+
+```{r}
+set.seed(123)
+gen_design(constrained_candidate_set, ~altitude + speed + mode, trials=6) |> 
+  eval_design_mc(model = ~ altitude + speed + mode,
+                 alpha=0.2, 
+                 effect_anova = TRUE, 
+                 effectsize = 2)
+
+set.seed(123)
+#Now calculate effect power with a likelihood ratio test
+gen_design(constrained_candidate_set, ~altitude + speed + mode, trials=6) |> 
+  eval_design_mc(model = ~ altitude + speed + mode,
+                 alpha=0.2, 
+                 effect_anova = FALSE, 
+                 effectsize = 2)
+
+```
+
+Here, we see the likelihood ratio test is giving effect power values above 90% at only 6 runs! I did mention earlier that some analytic methods are more powerful than others: is that what's going on here? To find out, let's do a sanity check on our Type-I error rate. As I mentioned earlier, power depends on several inputs. One of them is your Type-I error rate, which is set by the tester ahead of time. Or is it? Let's check the Type-I error rate by setting `effectsize = 0`: we're testing the power when the null hypothesis is true. We'll do this for both the Type-III ANOVA effect power and the likelihood ratio test power calculations.
+
+```{r}
+set.seed(123)
+gen_design(constrained_candidate_set, ~altitude + speed + mode, trials=6) |> 
+  eval_design_mc(model = ~ altitude + speed + mode,
+                 alpha=0.2, 
+                 effect_anova = TRUE, 
+                 effectsize = 0)
+
+set.seed(123)
+gen_design(constrained_candidate_set, ~altitude + speed + mode, trials=6) |> 
+  eval_design_mc(model = ~ altitude + speed + mode,
+                 alpha=0.2, 
+                 effect_anova = FALSE, 
+                 effectsize = 0)
+```
+
+Our Type-I error rate for the likelihood ratio test is close to 75%! That means that we are incorrectly calling the system effective 75% of the time--a terrible outcome. Let's see what's going on by plotting Type-I error as a function of sample size. We can use `eval_design_mc()` in `calculate_power_curves()` simply by specifying `eval_function = "eval_design_mc"` and the arguments in `eval_args`.
+
+```{r, fig.width=12,fig.height=6}
+power_values = calculate_power_curves(trials = seq(6,30,by=2),
+                       candidateset = constrained_candidate_set,
+                       model = ~ altitude + speed + mode,
+                       alpha = 0.2,
+                       effectsize = 0, 
+                       eval_function = "eval_design_mc",
+                       x_breaks =  seq(6,30,by=2),
+                       eval_args = list(nsim=1000, effect_anova = FALSE),
+                       ggplot_elements = list(geom_hline(yintercept = 0.8, 
+                                                         alpha = 0.5, 
+                                                         linetype = "dashed", 
+                                                         color = "red", 
+                                                         linewidth = 1)))
+```
+
+We see at low sample sizes, we our Type-I error rate is severely inflated with the likelihood ratio test. This is because the likelihood ratio test is based on an approximation of the log-likelihood to a chi-squared distribution, and that approximation fails at low sample sizes. We can correct that in skpr by setting `adjust_alpha_inflation = TRUE`, which runs the simulation twice: first to calculate the empirical distribution of p-values under the null hypothesis and find the true Type-I error cutoff that corresponds to your desired Type-I error rate, and then again with the actual effect size input by the user. Let's see how that works:
+
+```{r}
+set.seed(123)
+gen_design(constrained_candidate_set, ~altitude + speed + mode, trials=6) |> 
+  eval_design_mc(model = ~ altitude + speed + mode,
+                 alpha=0.2, 
+                 effect_anova = FALSE, adjust_alpha_inflation = TRUE,
+                 effectsize = 0)
+
+set.seed(123)
+gen_design(constrained_candidate_set, ~altitude + speed + mode, trials=6) |> 
+  eval_design_mc(model = ~ altitude + speed + mode,
+                 alpha=0.2, 
+                 effect_anova = FALSE, adjust_alpha_inflation = TRUE,
+                 effectsize = 2)
+
+set.seed(123)
+for(i in 1:100) {
+gen_design(constrained_candidate_set, ~altitude + speed + mode, trials=6) |> 
+  eval_design_mc(model = ~ altitude + speed + mode,
+                 alpha=0.2, 
+                 effect_anova = TRUE, 
+                 effectsize = 2)
+}
+```
+
+We see when we adjust for Type-I error inflation, the power "advantage" for the likelihood ratio test disappears. Type-I error inflation occurs all the time, particularly with blocking and split-plot designs, so I recommend always checking Type-I error as part of your DOE workflow: it only takes a minute and serves as a sanity check if your numbers seem too good to be true.
+
+# Final analysis
+
+Let's put this all together. We decide to use a model with all interactions, and also investigate two different effect sizes for an objective and a threshold requirement. We're doing a Monte Carlo simulation with 100 simulations and a binomial response, and we want to see at what point from 30 to 360 runs we reach 80% power for all model terms. We can do this entire analysis in a single call to `calculate_power_curves()`.
+
+```{r, fig.width=12, fig.height=6}
+set.seed(2023)
+power_values = calculate_power_curves(trials = seq(30,360,by=30),
+                       candidateset = constrained_candidate_set,
+                       model = ~ (altitude + speed + mode)^2,
+                       alpha = 0.2,
+                       effectsize = list(c(0.5,0.9), c(0.7,0.9)), 
+                       eval_function = "eval_design_mc",
+                       eval_args = list(nsim=1000, glmfamily = "binomial"),
+                       x_breaks = seq(30,360,by=30),
+                       ggplot_elements = list(geom_hline(yintercept = 0.8, 
+                                                         alpha = 0.5, 
+                                                         linetype = "dashed", 
+                                                         color = "red", 
+                                                         linewidth = 1))) 
+
+head(power_values, 10)
+```
+
+This analysis shows that we would need around 300 runs at an effect size of 0.5 to 0.9 and if we wanted to be able to estimate all terms in the model with 80% power. At the objective requirement of 0.7 to 0.9, we don't see some model terms crossing 80% power even at 360 runs.

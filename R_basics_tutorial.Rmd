@@ -1,0 +1,299 @@
+---
+title: "skpr_workshop_live_demo"
+output: html_document
+date: "2023-02-21"
+editor_options: 
+  chunk_output_type: console
+---
+
+This document will help introduce
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+
+# Installing Packages from The Comprehensive R Archive Network (CRAN)
+
+```{r, eval = FALSE}
+install.packages("skpr")
+install.packages("tidyverse")
+```
+
+## Loading libraries
+
+```{r}
+library(skpr)
+library(tidyverse)
+```
+
+# Creating vectors
+
+## Creating numeric vectors with c() and seq()
+
+```{r}
+altitudes_manual = c(100, 200, 300)
+altitudes_manual
+class(altitudes_manual)
+
+altitudes_colon = 1:200
+altitudes_colon
+
+altitudes_seq_by = seq(from = 100, to = 1000, by = 5)
+altitudes_seq_by
+
+altitudes_seq_length = seq(from = 50, to = 1000, length.out = 20)
+altitudes_seq_length
+```
+
+## Creating character vectors with `c()` and `paste()`
+
+```{r}
+modes = c("low","medium","high")
+modes
+class(modes)
+
+modes_paste = paste("mode", c("A","B","C","D","E"))
+modes_paste
+
+modes_paste = paste("mode", c("A","B","C","D","E"), sep="_")
+modes_paste
+
+modes_paste0 = paste0("mode", 1:5)
+modes_paste0
+
+```
+
+## Creating factors from character vectors (Matters for dummy encoding)
+
+```{r}
+modes_factor = factor(c("low","medium","high"))
+modes_factor
+contr.treatment(modes_factor)
+
+modes_factor_levels = factor(c("low","medium", "off", "high"),
+                             levels = c("off", "low", "medium", "high"))
+contr.treatment(modes_factor_levels)
+
+```
+
+# Lists and `for` loops
+
+```{r}
+#Lists can hold any kind of data
+
+new_list = list()
+new_list
+
+new_list[["type"]] = c("low","medium","high")
+new_list
+
+#Use dollar sign operator to get value 
+new_list$type
+
+#Double brackets returns the object in the list (without the name)
+new_list[["type"]]
+
+#Single brackets returns another list (with the name)
+new_list["type"]
+
+new_list$altitude = seq(10000,30000,by=2000)
+new_list
+
+#You can also assign/access elements by position
+new_list[[1]]
+new_list[[2]]
+
+#We can use a for loop to automate tasks and assign into a list
+output_list_dice_rolls = list()
+dice_roll_single = sample(x=1:6,size=100, replace = TRUE)
+mean(dice_roll_single)
+for(i in 1:10000) {
+  output_list_dice_rolls[[i]] = sample(x=1:6,size=100, replace = TRUE)
+}
+#(see environment pane)
+
+#Compute the average dice roll in each case 
+sum_dice_rolls = vector(mode="numeric", length=10000)
+for(i in 1:10000) {
+  sum_dice_rolls[i] = mean(output_list_dice_rolls[[i]])
+}
+
+#Plot a histogram of the results
+hist(sum_dice_rolls, breaks = 100)
+```
+
+# Setting a random seed with `set.seed()`
+
+```{r}
+#We get different values with each run
+sample(x=1:6,size=10, replace = TRUE)
+sample(x=1:6,size=10, replace = TRUE)
+
+#Fix randomness by using set.seed()
+set.seed(123)
+sample(x=1:6,size=10, replace = TRUE)
+
+set.seed(123)
+sample(x=1:6,size=10, replace = TRUE)
+
+#Change it and get completely different results
+set.seed(124)
+sample(x=1:6,size=10, replace = TRUE)
+```
+
+# Data frames, tabular data, and recycling rules
+
+Here we're manually creating a candidate set--a data frame of allowable test points.
+
+```{r}
+basic_dataframe = data.frame(altitudes = c(100, 200, 300, 100, 200, 300), 
+                             mode = c("low", "low", "loW", 
+                                      "high", "high", "high"),
+                             operator = rep("single", 6))
+basic_dataframe
+
+#Access individual columns with `$` (just like lists)
+basic_dataframe$altitudes
+basic_dataframe$mode
+
+#Also assign into a data.frame()
+basic_dataframe$target_type = factor(c("type1", "type2", 
+                                       "type1", "type2", 
+                                       "type1", "type2"))
+basic_dataframe
+
+#Factors are recycled to the length of the longest input (be careful!)
+basic_list =  list(altitudes = c(100, 200, 300), 
+                   mode = c("low", "low", "loW",
+                            "high", "high", "high"),
+                   operator = "single")
+basic_list
+basic_dataframe_recycled =  data.frame(altitudes = c(100, 200, 300), 
+                                       mode = c("low", "low", "loW",
+                                                "high", "high", "high"),
+                                       operator = "single")
+basic_dataframe_recycled
+#Question: What happens when the lengths of the vectors aren't divisible?
+# basic_dataframe_recycled_error =  data.frame(altitudes = c(100, 200, 300),
+#                                              mode = c("low", "low",
+#                                                       "high", "high", "high"),
+#                                              operator = "single")
+```
+
+## Creating candidate sets with `expand.grid()`
+
+```{r}
+candidate_set = expand.grid(altitudes = c(100, 200, 300),
+                            mode = c("low", "high"),
+                            operator = c("blue", "gold"))
+candidate_set
+```
+
+# Basics of the Formula interface
+
+We'll run a fake experiment to see how it works.
+
+```{r}
+set.seed(2023)
+basic_dataframe_lm = expand.grid(altitudes = c(100, 200, 300),
+                                 mode = c("low", "medium", "high"),
+                                 operator = c("blue", "gold"))
+
+# Creating a fake response--simulating what would happen 
+# if there were no effect from any of the terms.                                
+basic_dataframe_lm$Y = runif(18)
+basic_dataframe_lm
+
+#Left side ~ Right side
+#Response  ~ Model terms
+Y ~ altitudes + mode + operator
+
+# Basic use (main effects only)
+fit = lm(formula = Y ~ altitudes + mode + operator, data = basic_dataframe_lm)
+summary(fit)
+
+# Use dot operator `.` to include all main effects terms
+fit2 = lm(formula = Y ~ ., data = basic_dataframe_lm)
+summary(fit2)
+
+#Question: Where did the operator term go?
+fit3 = lm(formula = Y ~ mode + altitudes, data = basic_dataframe_lm)
+summary(fit3)
+
+# Include interaction effects with `:`
+fit4 = lm(formula = Y ~ mode + altitudes + mode:altitudes, data = basic_dataframe_lm)
+summary(fit4)
+
+#Exactly the same as writing this:
+fit5 = lm(formula = Y ~ mode * altitudes, data = basic_dataframe_lm)
+summary(fit5)
+
+# You can also use the dot operator to create interactions between all model terms
+fit6 = lm(formula = Y ~ (.)^2 , data = basic_dataframe_lm)
+summary(fit6)
+
+fit6 = lm(formula = Y ~ . * . , data = basic_dataframe_lm)
+summary(fit6)
+
+#Or specify just interactions between a single term and all the other terms
+fit7 = lm(formula = Y ~ .  + . : altitudes , data = basic_dataframe_lm)
+summary(fit7)
+
+#Include quadratic terms with the as is function `I()`
+fit8 = lm(formula = Y ~ mode + altitudes + I(altitudes^2), data = basic_dataframe_lm)
+summary(fit8)
+```
+
+# The R pipe \|\> and filtering candidate sets with dplyr
+
+How do we easily represent a series of sequential data manipulations in R?
+
+```{r}
+#Generate a candidate set using expand.grid() for a flight envelope
+candidate_set = expand.grid(altitude = seq(10000,30000,by=1000),
+                            speed    = seq(450,550,by=5),
+                            mode      = c("mode1", "mode2", "mode3"))
+head(candidate_set,10)
+nrow(candidate_set)
+
+#All the potential test points
+ggplot(candidate_set) +
+  geom_point(aes(x=speed,y=altitude)) + 
+  facet_wrap(~mode)
+
+#Flight envelope 
+ggplot(candidate_set) +
+  geom_point(aes(x=speed,y=altitude)) + 
+  geom_abline(slope = -90, intercept=70000,color="red") +
+  geom_abline(slope = 1000, intercept=-430000,color="red") +
+  geom_abline(slope = -300, intercept=150000,color="red") +
+  geom_abline(slope = 50, intercept=-14000,color="red") +
+  facet_wrap(~mode)
+
+# Problem: How do we filter down our candidate set to our test region?
+# Solution: Use filter function from dplyr package
+
+# Problem: We have multiple constraints, how do we generate our final candidate set?
+# Solution #1: Use temporary variables?
+temp_candidate = filter(candidate_set, 70000 - speed * 90 > altitude)
+temp_candidate2 = filter(temp_candidate, -430000 + speed * 1000 > altitude)
+temp_candidate3 = filter(temp_candidate2, 150000 - speed * 300 < altitude)
+constrained_candidate_set = filter(temp_candidate3, -14000 + speed * 50 < altitude)
+
+# Solution #2: Use the pipe to chain calls together
+constrained_candidate_set = candidate_set |> 
+  filter(70000 - speed * 90 > altitude) |> 
+  filter(-430000 + speed * 1000 > altitude) |> 
+  filter(150000 - speed * 300 < altitude)  |> 
+  filter(-14000 + speed * 50 < altitude)
+
+#Plot the new constrained candidate set
+ggplot(data=constrained_candidate_set) +
+  geom_point(aes(x=speed,y=altitude))  +
+  geom_abline(slope = -90, intercept=70000,color="red") +
+  geom_abline(slope = 1000, intercept=-430000,color="red") +
+  geom_abline(slope = -300, intercept=150000,color="red") +
+  geom_abline(slope = 50, intercept=-14000,color="red") +
+  labs(title = "Testing Flight Envelope") +
+  facet_wrap(~mode)
+```

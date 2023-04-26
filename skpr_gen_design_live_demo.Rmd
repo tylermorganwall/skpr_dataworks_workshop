@@ -1,0 +1,325 @@
+---
+title: "gen_design_basics"
+output: html_document
+date: "2023-02-21"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+# setwd("U:/skpr_workshop_rmd//")
+```
+
+# Load our libraries
+
+```{r}
+library(skpr)
+library(tidyverse)
+```
+
+# Creating the candidate set and the constrained candidate set
+
+We want to run a test on a synthetic aperture radar attached to an aircraft. We want to characterize how the resolution of the collected imagery changes depending on the speed, altitude, and mode of the radar.
+
+We first want to generate our flight envelope. We do this by generating a table (data.frame) of all combinations of our input factors with `expand.grid()`, and then filtering out all those that don't match our constraints.
+
+```{r}
+#Small example of what expand.grid() outputs
+expand.grid(altitude    = seq(10000,30000,by=10000),
+            speed       = seq(450,550,by=50),
+            mode        = c("scan", "strip", "spotlight"),
+            target_env  = c("urban", "desert"))
+
+candidate_set = expand.grid(altitude    = seq(10000,30000,by=1000),
+                            speed       = seq(450,550,by=5),
+                            mode        = c("scan", "strip", "spotlight"),
+                            target_env  = c("urban", "desert"))
+nrow(candidate_set)
+
+```
+
+# Generating our first design with the unconstrained candidate set to see the classical design
+
+First we'll generate a design using the full linear model with all interactions. Our first test design will have 24 runs.
+
+```{r}
+set.seed(2023)
+flight_design_no_constraints = gen_design(candidateset = candidate_set,
+                           model = ~(altitude + speed + mode)^2,
+                           trials = 24,
+                           randomized = FALSE) 
+flight_design_no_constraints
+get_optimality(flight_design_no_constraints)
+
+ggplot(flight_design_no_constraints) +
+  geom_point(data=candidate_set, aes(x=speed,y=altitude),size=0.5) +
+  geom_count(aes(x=speed,y=altitude),color="red") +
+  facet_wrap(~mode) +
+  scale_radius(range = c(2,5), breaks = (function(x) seq(min(x),max(x),by=1)))
+```
+
+Note that randomization doesn't affect the design--it simply rearranges it so it's easier to read. The order of the design doesn't affect the design metrics in any way. However, the tester should randomize the runs when the test is executed.
+
+This generated the classical experimental design for this candidate set: test points at the corners of the space.
+
+# Design generation with a constrained candidate set
+
+Now let's see what design points are selected when we constrain our candidate set to the allowable flight envelope.
+
+```{r}
+constrained_candidate_set = candidate_set |> 
+  filter(70000 - speed * 90 > altitude) |> 
+  filter(-430000 + speed * 1000 > altitude) |> 
+  filter(150000 - speed * 300 < altitude)  |> 
+  filter(-14000 + speed * 50 < altitude)
+
+#Plot the new constrained candidate set
+ggplot(data=constrained_candidate_set) +
+  geom_point(aes(x=speed,y=altitude))  +
+  geom_abline(slope = -90, intercept=70000,color="red") +
+  geom_abline(slope = 1000, intercept=-430000,color="red") +
+  geom_abline(slope = -300, intercept=150000,color="red") +
+  geom_abline(slope = 50, intercept=-14000,color="red") +
+  labs(title = "Testing Flight Envelope") +
+  facet_wrap(~mode)
+
+set.seed(2023)
+flight_design = gen_design(candidateset = constrained_candidate_set,
+                           model = ~ (altitude + speed + mode)^2,
+                           trials = 24,
+                           randomized=FALSE) 
+flight_design
+get_optimality(flight_design)
+
+ggplot(flight_design) +
+  geom_point(data=constrained_candidate_set, aes(x=speed,y=altitude),size=0.5) +
+  geom_count(aes(x=speed,y=altitude),color="red") +
+  facet_wrap(~mode) +
+  scale_radius(range = c(2,5), breaks = (function(x) seq(min(x),max(x),by=1)))
+```
+
+We see we are now selecting the "corners" of our flight envelope.
+
+# Generating designs that can detect curvature
+
+Let's say we suspect that the behavior of the NIIRS rating may not be linear--for example, we might suspect that at low altitudes we may have poor resolution due to shadowing effects, while at high altitudes the distance may negatively impact resolution, and we want to detect the sweet spot in-between. This means we want to be able to detect "curvature," which we specify in an R formula with the "as.is" function, `I()`. This function evaluates the expression contained within rather than interpreting it as part of the formula. For example, the formula expression `~(x+y)^2` is interpreted by R as  fitting a main effects model with interactions between `x` and `y` `~x + y + x:y`, while `~I((x+y)^2)` is interpreted as fitting a new column of value `(x+y)^2`. This function is just shorthand for adding a new column to your data.frame (e.g. `design$x_squared = design$x * design$x`) with the arithmetic value computed within. 
+
+```{r}
+set.seed(2023)
+flight_design_quadratic = gen_design(candidateset = constrained_candidate_set,
+                           model = ~ (altitude + speed + mode)^2 + I(speed^2) + I(altitude^2),
+                           trials = 24) 
+get_optimality(flight_design_quadratic)
+
+ggplot(flight_design_quadratic) +
+  geom_point(data=constrained_candidate_set, aes(x=speed,y=altitude),size=0.5) +
+  geom_count(aes(x=speed,y=altitude),color="red") +
+  facet_wrap(~mode) +
+  scale_radius(range = c(2,5), breaks = (function(x) seq(min(x),max(x),by=1)))
+```
+
+We see we now have center points long with points on the extrema: these points allow us to determine if the relationship is linear or has curvature.
+
+# Filling the design space
+
+However, you might note that This appears to be only partially filling up the design space--one indication that your design could be improved is if there is a lack of balance. Let's increase the number of runs and see where the additional test points end up.
+
+```{r}
+set.seed(2023)
+flight_design_quadratic2 = gen_design(candidateset = constrained_candidate_set,
+                           model = ~ (altitude + speed + mode)^2 + I(speed^2) + I(altitude^2),
+                           trials = 72) 
+
+
+ggplot(flight_design_quadratic2) +
+  geom_point(data=constrained_candidate_set, aes(x=speed,y=altitude),size=0.5) +
+  geom_count(aes(x=speed,y=altitude),color="red") +
+  facet_wrap(~mode) +
+  scale_radius(range = c(2,5), breaks = (function(x) seq(min(x),max(x),by=1)))
+```
+
+Now the three factors are fairly well balanced. When a design is well-balanced and adding more points results only in replicating additional test points, you can at least be assured that you are covering the space well (although those replicates might be required to have sufficient power to answer your hypothesis, depending on your effect size).
+
+However, we should only expect balance between factors when the design space is balanced: disallowed combinations can actually make it so the optimal design also isn't balanced. We can add a constraint to one of the modes to see how it results in the design losing symmetry across modes.
+
+```{r}
+set.seed(2023)
+constrained_candidate_set2 = filter(constrained_candidate_set, mode != "spotlight" | altitude < 25000)
+flight_design_quadratic3 = gen_design(candidateset = constrained_candidate_set2, 
+             model = ~ (altitude + speed + mode)^2 + I(speed^2) + I(altitude^2),
+             trials = 72) 
+
+ggplot(flight_design_quadratic3) +
+  geom_point(data=constrained_candidate_set2, aes(x=speed,y=altitude),size=0.5) +
+  geom_count(aes(x=speed,y=altitude),color="red") +
+  facet_wrap(~mode) +
+  scale_radius(range = c(2,5), breaks = (function(x) seq(min(x),max(x),by=1)))
+```
+
+# I-Optimality
+
+Let's say we're more interested in predicting how the NIIRS value varies across the space, rather than just estimating the size of the effects from each model term. Here, we will want to use something called an I-optimal design, which minimizes the average prediction variance across the space.
+
+```{r}
+set.seed(2023)
+flight_design_prediction = gen_design(candidateset = constrained_candidate_set,
+                           model = ~ (altitude + speed + mode)^2 + I(speed^2) + I(altitude^2),
+                           trials = 72,
+                           optimality = "I") 
+get_optimality(flight_design_prediction)
+#Compare it to the previous design
+get_optimality(flight_design_quadratic2)
+
+#D-optimal design
+ggplot(flight_design_quadratic2) +
+  geom_point(data=constrained_candidate_set, aes(x=speed,y=altitude),size=0.5) +
+  geom_count(aes(x=speed,y=altitude),color="red") +
+  facet_wrap(~mode) +
+  scale_radius(range = c(2,5), breaks = (function(x) seq(min(x),max(x),by=1)))
+
+#I-optimal design
+ggplot(flight_design_prediction) +
+  geom_point(data=constrained_candidate_set, aes(x=speed,y=altitude),size=0.5) +
+  geom_count(aes(x=speed,y=altitude),color="red") +
+  facet_wrap(~mode) +
+  scale_radius(range = c(2,5), breaks = (function(x) seq(min(x),max(x),by=1)))
+
+```
+
+However, these optimality criteria don't tell us much, other than we found a design that's better in one criteria than the other. A design can be mathematically optimal for a given design criterion and specified number of runs but still be inadequate for the actual experimental goal(s). We need other ways to evaluate the designs to decide which one to choose.
+
+# Comparing D and I optimal designs with Fraction of Design Space plots
+
+Ideally, a design would have low prediction variance across the entire design space. We can use a visualization called a Fraction of Design Space (FDS) plot to help choose between designs if this is the primary metric we are interested in. A FDS Plot shows the proportion of the design space over which the relative prediction variance lies below a given value. For a hypothetical ideal design, this graph would be a flat horizontal line: this means you would have the same prediction variance everywhere. Realistically, the prediction variance will always vary across the design space, as we only have a finite number of test points to allocate. When comparing designs using FDS plots we can assess designs by how much of the design space is under a particular prediction variance value as well as what the worst case scenario for prediction variance is. I-optimal designs are specifically designed for prediction, so let's see how an I-optimal design compares to a D-optimal using an FDS plot.
+
+```{r}
+plot_fds(flight_design_quadratic2, yaxis_max = 1, description = "Fraction of Design Space - D-optimal")
+get_optimality(flight_design_quadratic2, "I")
+
+plot_fds(flight_design_prediction, yaxis_max = 1, description = "Fraction of Design Space - I-optimal")
+get_optimality(flight_design_prediction, "I")
+```
+
+We see that the I-optimal design has a lower overall average prediction variance across most of the space, but also has areas with much higher prediction variance. Depending on your experimental goals, you might value one property or the other.
+
+# Split-plot designs
+
+See slides.
+
+We also have included a hard-to-change factor `Target Environment` in our candidate set. We can construct a split-plot design in layers: first by building a design for the hard-to-change factors, fixing those blocks, and then building a design for just the easy-to-change factors.
+
+```{r}
+set.seed(2023)
+flight_design_htc = gen_design(candidateset = constrained_candidate_set,
+                           model = ~ target_env,
+                           trials = 8) 
+flight_design_htc
+
+flight_design_splitplot = gen_design(candidateset = constrained_candidate_set,
+                           model = ~ (altitude + speed + mode + target_env)^2 + I(speed^2) + I(altitude^2),
+                           splitplotdesign = flight_design_htc,
+                           trials = 64,
+                           parallel = TRUE, add_blocking_columns = TRUE) 
+flight_design_splitplot
+
+ggplot(flight_design_splitplot) +
+  geom_point(data=constrained_candidate_set, aes(x=speed,y=altitude),size=0.5) +
+  geom_count(aes(x=speed,y=altitude),color="red") +
+  facet_wrap(target_env~mode) +
+  scale_radius(range = c(2,5), breaks = (function(x) seq(min(x),max(x),by=1)))
+
+```
+
+The blocking information is by default stored in the row names, but you can turn `add_blocking_columns = TRUE` and blocking columns will be added to the design. skpr knows to look for these and will handle them separately from factor terms. 
+
+You can repeat this process any number of times for nested split-plot designs where you have various blocking levels that have different levels (e.g. split-split plot, split-split-split plot, etc). We can also manually specify the split-plot sizes for each whole plot: if you have a test constraint where you know that some split plot levels are going to have more runs that others, you can account for that here.
+
+```{r}
+
+flight_design_splitplot_unbalanced = gen_design(candidateset = constrained_candidate_set,
+                           model = ~ (altitude + speed + mode + target_env)^2 + I(speed^2) + I(altitude^2),
+                           splitplotdesign = flight_design_htc,
+                           trials = 64, blocksizes = c(4,4,12,12,4,4,12,12),
+                           parallel = TRUE, add_blocking_columns = TRUE) 
+flight_design_splitplot_unbalanced
+```
+
+# Design augmentation
+
+In addition to split-plot designs, there are other occasions you might run into blocked designs. One of these occasions is when you're using an iterative testing strategy referred to as sequential experimental design, which is an useful tool when designing resource-constrained experiments.
+
+Sequential design refers to running a much smaller (and thus, less resource- intensive) screening design to test for the existence of effects before committing to a more expensive experiment to characterize their size. After running a screening experiment and detecting that some effects are active, a practitioner needs to design a follow-up experiment to actually characterize the active effects. Generating an entire new optimal design ignores the information already collected in the prior experiment, potentially wasting testing resources that can be targeted at characterizing the effects of interest.
+
+skpr's Alias-optimality criteria can generate optimal screening designs. Let's see how it does.
+
+```{r}
+set.seed(2023)
+flight_design_screening = gen_design(candidateset = constrained_candidate_set,
+                           model = ~ altitude + speed + mode,
+                           trials = 12, optimality = "alias", minDopt = 0, repeats = 100,
+                           parallel = TRUE) 
+set.seed(2023)
+flight_design_d = gen_design(candidateset = constrained_candidate_set,
+                           model = ~ altitude + speed + mode,
+                           trials = 12, optimality = "D", repeats=100) 
+
+ggplot(flight_design_screening) +
+  geom_point(data=constrained_candidate_set, aes(x=speed,y=altitude),size=0.5) +
+  geom_count(aes(x=speed,y=altitude),color="red") +
+  facet_wrap(~mode) +
+  scale_radius(range = c(2,5), breaks = (function(x) seq(min(x),max(x),by=1)))
+
+ggplot(flight_design_d) +
+  geom_point(data=constrained_candidate_set, aes(x=speed,y=altitude),size=0.5) +
+  geom_count(aes(x=speed,y=altitude),color="red") +
+  facet_wrap(~mode) +
+  scale_radius(range = c(2,5), breaks = (function(x) seq(min(x),max(x),by=1)))
+
+
+#Comparing optimality values
+get_optimality(flight_design_d)
+get_optimality(flight_design_screening)
+
+#Comparing correlation structure
+plot_correlations(flight_design_d)
+plot_correlations(flight_design_screening)
+
+```
+
+Now that we have our screening design--let's augment it. Let's say we ran our experiment and found that `speed:mode` and `altitude:speed` aren't significant. We can then remove that term from the design and generate a new design that only consists of the terms we have found to be active.
+
+```{r}
+
+gen_design(constrained_candidate_set, 
+           model = ~altitude + speed + mode + altitude:mode,
+           augmentdesign = flight_design_screening,
+           trials = 24) ->
+  augmented_design
+augmented_design
+
+#Dark green dots are the new points
+ggplot() +
+  geom_point(data=constrained_candidate_set, aes(x=speed,y=altitude),size=0.5) +
+  geom_count(data=augmented_design, aes(x=speed,y=altitude),color="darkgreen") +
+  geom_count(data=flight_design_screening, aes(x=speed,y=altitude),color="red") +
+  facet_wrap(~mode) +
+  scale_radius(range = c(2,5), breaks = (function(x) seq(min(x),max(x),by=1)))
+
+```
+
+# Statistical Power
+
+One of the most common goals in running an experiment is to study how a response variable is affected by changes in the experimental factors, and whether those changes are statistically significant. This means the primary concern of the experimenter is to make sure their experiment can actually detect these effects if they exist. We judge this primarily based on statistical power: the probability that our experiment will be able to detect an effect if one truly exists. We'll look into how to calculate that in skpr next.
+
+But first, let's regenerate and save our D-optimal design to a CSV file. Although we can easy regenerate our design later by setting our random seed and calling `gen_design()` again, it can also be nice to save it to a file so you can easily share it and load it later.
+
+# Saving design to CSV to share
+
+```{r}
+set.seed(2023)
+design_final = gen_design(candidateset = constrained_candidate_set,
+                          model = ~ (altitude + speed + mode)^2 + I(speed^2) + I(altitude^2),
+                          trials = 72) 
+write.csv(design_final, file = "design_final.csv", row.names = FALSE)
+```

@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.335">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2023-02-21">
+
+<title>Design of Experiments in R with skpr - gen_design_basics</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">Design of Experiments in R with skpr</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./index.html">
+ <span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./R_basics_tutorial.html">
+ <span class="menu-text">R Basics Tutorial</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./skpr_gen_design_live_demo.html">
+ <span class="menu-text">Generating Optimal Designs with skpr</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./skpr_eval_design_live_demo.html">
+ <span class="menu-text">Evaluating Experimental Designs with skpr</span></a>
+  </li>  
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#load-our-libraries" id="toc-load-our-libraries" class="nav-link active" data-scroll-target="#load-our-libraries">Load our libraries</a></li>
+  <li><a href="#loading-our-design" id="toc-loading-our-design" class="nav-link" data-scroll-target="#loading-our-design">Loading our design</a></li>
+  <li><a href="#calculate-power-curves" id="toc-calculate-power-curves" class="nav-link" data-scroll-target="#calculate-power-curves">Calculate Power Curves</a></li>
+  <li><a href="#monte-carlo-power-evaluation" id="toc-monte-carlo-power-evaluation" class="nav-link" data-scroll-target="#monte-carlo-power-evaluation">Monte Carlo power evaluation</a></li>
+  <li><a href="#checking-for-type-i-error-inflation" id="toc-checking-for-type-i-error-inflation" class="nav-link" data-scroll-target="#checking-for-type-i-error-inflation">Checking for Type-I error inflation</a></li>
+  <li><a href="#final-analysis" id="toc-final-analysis" class="nav-link" data-scroll-target="#final-analysis">Final analysis</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">gen_design_basics</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">February 21, 2023</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="load-our-libraries" class="level1">
+<h1>Load our libraries</h1>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(skpr)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">#Set default contrasts to sum contrasts</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">contrasts =</span> <span class="fu">rep</span>(<span class="st">"contr.sum"</span>, <span class="dv">2</span>))     </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="loading-our-design" class="level1">
+<h1>Loading our design</h1>
+<p>skpr designs are R data.frames, so we can load in an external CSV file and skpr can use that as a design. We’ll also make sure our candidate set is available to generate new designs as well.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>candidate_set <span class="ot">=</span> <span class="fu">expand.grid</span>(<span class="at">altitude    =</span> <span class="fu">seq</span>(<span class="dv">10000</span>,<span class="dv">30000</span>,<span class="at">by=</span><span class="dv">1000</span>),</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>                            <span class="at">speed       =</span> <span class="fu">seq</span>(<span class="dv">450</span>,<span class="dv">550</span>,<span class="at">by=</span><span class="dv">5</span>),</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>                            <span class="at">mode        =</span> <span class="fu">c</span>(<span class="st">"scan"</span>, <span class="st">"strip"</span>, <span class="st">"spotlight"</span>),</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>                            <span class="at">target_env =</span> <span class="fu">c</span>(<span class="st">"urban"</span>, <span class="st">"desert"</span>))</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>constrained_candidate_set <span class="ot">=</span> candidate_set <span class="sc">|&gt;</span> </span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="dv">70000</span> <span class="sc">-</span> speed <span class="sc">*</span> <span class="dv">90</span> <span class="sc">&gt;</span> altitude) <span class="sc">|&gt;</span> </span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">-</span><span class="dv">430000</span> <span class="sc">+</span> speed <span class="sc">*</span> <span class="dv">1000</span> <span class="sc">&gt;</span> altitude) <span class="sc">|&gt;</span> </span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="dv">150000</span> <span class="sc">-</span> speed <span class="sc">*</span> <span class="dv">300</span> <span class="sc">&lt;</span> altitude)  <span class="sc">|&gt;</span> </span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">-</span><span class="dv">14000</span> <span class="sc">+</span> speed <span class="sc">*</span> <span class="dv">50</span> <span class="sc">&lt;</span> altitude)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>design_final <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"design_final.csv"</span>)</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>design_final</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##    altitude speed      mode
+## 1     20000   550      scan
+## 2     28000   460     strip
+## 3     14000   550      scan
+## 4     10000   470 spotlight
+## 5     28000   460     strip
+## 6     28000   460 spotlight
+## 7     10000   470      scan
+## 8     20000   550     strip
+## 9     14000   550      scan
+## 10    28000   460      scan
+## 11    28000   460     strip
+## 12    10000   470 spotlight
+## 13    20000   550      scan
+## 14    14000   550     strip
+## 15    20000   550 spotlight
+## 16    10000   470      scan
+## 17    28000   460 spotlight
+## 18    10000   470     strip
+## 19    18000   450 spotlight
+## 20    20000   550 spotlight
+## 21    28000   460      scan
+## 22    10000   470 spotlight
+## 23    10000   470     strip
+## 24    28000   460     strip
+## 25    20000   550      scan
+## 26    28000   460 spotlight
+## 27    14000   550 spotlight
+## 28    20000   550     strip
+## 29    14000   550      scan
+## 30    24000   510      scan
+## 31    19000   450     strip
+## 32    10000   470 spotlight
+## 33    14000   550     strip
+## 34    28000   460      scan
+## 35    19000   450      scan
+## 36    10000   470      scan
+## 37    20000   550 spotlight
+## 38    28000   460 spotlight
+## 39    19000   450      scan
+## 40    14000   550 spotlight
+## 41    10000   470     strip
+## 42    24000   510     strip
+## 43    14000   550     strip
+## 44    10000   470 spotlight
+## 45    19000   450 spotlight
+## 46    14000   550      scan
+## 47    28000   460     strip
+## 48    24000   510 spotlight
+## 49    20000   550     strip
+## 50    28000   460      scan
+## 51    28000   460      scan
+## 52    10000   470      scan
+## 53    16000   450      scan
+## 54    14000   550 spotlight
+## 55    16000   450 spotlight
+## 56    18000   500 spotlight
+## 57    24000   510      scan
+## 58    16000   450     strip
+## 59    12000   515      scan
+## 60    28000   460 spotlight
+## 61    10000   470     strip
+## 62    18000   495      scan
+## 63    20000   550 spotlight
+## 64    18000   500 spotlight
+## 65    19000   450     strip
+## 66    14000   550     strip
+## 67    18000   495     strip
+## 68    24000   510     strip
+## 69    10000   470     strip
+## 70    10000   470      scan
+## 71    12000   515     strip
+## 72    12000   515 spotlight</code></pre>
+<p>Let’s first start by talking about our response variable. We are going to treat our NIIRS rating as a continuous response, and we want to characterize how that rating changes as a function of altitude, mode, and speed. Our model includes a quadratic term to see if there is any curvature present. Let’s run this power analysis with <code>eval_design()</code>.</p>
+<p>Our goal is 80% power in all model terms. Let’s see how we do, with the assumption that we are going to fit a linear model to the data and our design is fairly well balanced.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval_design</span>(<span class="at">design =</span> design_final,</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>            <span class="at">model =</span> <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="fu">I</span>(speed<span class="sc">^</span><span class="dv">2</span>) <span class="sc">+</span> <span class="fu">I</span>(altitude<span class="sc">^</span><span class="dv">2</span>),</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">alpha =</span> <span class="fl">0.05</span>,</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>            <span class="at">effectsize =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##         parameter            type     power
+## 1     (Intercept)    effect.power 0.7672975
+## 2        altitude    effect.power 0.9713374
+## 3           speed    effect.power 0.9983038
+## 4            mode    effect.power 0.9999913
+## 5      I(speed^2)    effect.power 0.7122924
+## 6   I(altitude^2)    effect.power 0.7392905
+## 7  altitude:speed    effect.power 0.7345717
+## 8   altitude:mode    effect.power 0.9922116
+## 9      speed:mode    effect.power 0.9982285
+## 10    (Intercept) parameter.power 0.7672975
+## 11       altitude parameter.power 0.9713374
+## 12          speed parameter.power 0.9983038
+## 13          mode1 parameter.power 0.9999368
+## 14          mode2 parameter.power 0.9999348
+## 15     I(speed^2) parameter.power 0.7122924
+## 16  I(altitude^2) parameter.power 0.7392905
+## 17 altitude:speed parameter.power 0.7345717
+## 18 altitude:mode1 parameter.power 0.9857589
+## 19 altitude:mode2 parameter.power 0.9842852
+## 20    speed:mode1 parameter.power 0.9953791
+## 21    speed:mode2 parameter.power 0.9954601
+## ==============Evaluation Info==============
+## * Alpha = 0.05 * Trials = 72 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode + altitude:speed + altitude:mode + speed:mode + I(speed^2) + I(altitude^2) 
+## * Anticipated Coefficients = c(1, 1, 1, 1, -1, 1, 1, 1, 1, -1, 1, -1) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `car::Anova(fit, type = "III")`</code></pre>
+<p>Here we see our design and model, but we also have two new arguments: <code>alpha</code> and <code>effectsize</code>. <code>alpha</code> is the Type-I error, and <code>effectsize</code> is here stated as an signal to noise ratio (SNR) of 2. Let’s look at the slides for some more information on effect size.</p>
+<p>Let’s say we know (based on previous tests) to expect an intrinsic variation of about 1 NIIRS point from run to run, independent of the experimental factors. An effect size of 2 then corresponds to being able to detect a difference of 2 NIIRS points. Let’s also say that we must confirm that our system produces images within 1 point on the NIIRS scale–our effect size should then be halved.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval_design</span>(<span class="at">design =</span> design_final,</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>            <span class="at">model =</span> <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="fu">I</span>(speed<span class="sc">^</span><span class="dv">2</span>) <span class="sc">+</span> <span class="fu">I</span>(altitude<span class="sc">^</span><span class="dv">2</span>),</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">alpha =</span> <span class="fl">0.05</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>            <span class="at">effectsize =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##         parameter            type     power
+## 1     (Intercept)    effect.power 0.2698055
+## 2        altitude    effect.power 0.4883863
+## 3           speed    effect.power 0.6863168
+## 4            mode    effect.power 0.8517509
+## 5      I(speed^2)    effect.power 0.2426662
+## 6   I(altitude^2)    effect.power 0.2554208
+## 7  altitude:speed    effect.power 0.2531190
+## 8   altitude:mode    effect.power 0.5507805
+## 9      speed:mode    effect.power 0.6441155
+## 10    (Intercept) parameter.power 0.2698055
+## 11       altitude parameter.power 0.4883863
+## 12          speed parameter.power 0.6863168
+## 13          mode1 parameter.power 0.8257357
+## 14          mode2 parameter.power 0.8247416
+## 15     I(speed^2) parameter.power 0.2426662
+## 16  I(altitude^2) parameter.power 0.2554208
+## 17 altitude:speed parameter.power 0.2531190
+## 18 altitude:mode1 parameter.power 0.5460779
+## 19 altitude:mode2 parameter.power 0.5383437
+## 20    speed:mode1 parameter.power 0.6262726
+## 21    speed:mode2 parameter.power 0.6274187
+## ==============Evaluation Info==============
+## * Alpha = 0.05 * Trials = 72 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode + altitude:speed + altitude:mode + speed:mode + I(speed^2) + I(altitude^2) 
+## * Anticipated Coefficients = c(0.500, 0.500, 0.500, 0.500, -0.500, 0.500, 0.500, 0.500, 0.500, -0.500, 0.500, -0.500) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `car::Anova(fit, type = "III")`</code></pre>
+<p>Here, let’s say our organization is willing to accept the risk that we call the system effective at 80% confidence instead of 95%: This means we will set our alpha to 0.2. This change (along with requiring 80% power) means we are saying we will accept either a false positive or false negative with equal probability.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval_design</span>(<span class="at">design =</span> design_final,</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>            <span class="at">model =</span> <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="fu">I</span>(speed<span class="sc">^</span><span class="dv">2</span>) <span class="sc">+</span> <span class="fu">I</span>(altitude<span class="sc">^</span><span class="dv">2</span>),</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">alpha =</span> <span class="fl">0.2</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>            <span class="at">effectsize =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##         parameter            type     power
+## 1     (Intercept)    effect.power 0.5344564
+## 2        altitude    effect.power 0.7482697
+## 3           speed    effect.power 0.8824046
+## 4            mode    effect.power 0.9612043
+## 5      I(speed^2)    effect.power 0.5014520
+## 6   I(altitude^2)    effect.power 0.5171805
+## 7  altitude:speed    effect.power 0.5143710
+## 8   altitude:mode    effect.power 0.8012921
+## 9      speed:mode    effect.power 0.8617164
+## 10    (Intercept) parameter.power 0.5344564
+## 11       altitude parameter.power 0.7482697
+## 12          speed parameter.power 0.8824046
+## 13          mode1 parameter.power 0.9498182
+## 14          mode2 parameter.power 0.9494140
+## 15     I(speed^2) parameter.power 0.5014520
+## 16  I(altitude^2) parameter.power 0.5171805
+## 17 altitude:speed parameter.power 0.5143710
+## 18 altitude:mode1 parameter.power 0.7923765
+## 19 altitude:mode2 parameter.power 0.7867171
+## 20    speed:mode1 parameter.power 0.8466934
+## 21    speed:mode2 parameter.power 0.8474138
+## ==============Evaluation Info==============
+## * Alpha = 0.2 * Trials = 72 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode + altitude:speed + altitude:mode + speed:mode + I(speed^2) + I(altitude^2) 
+## * Anticipated Coefficients = c(0.500, 0.500, 0.500, 0.500, -0.500, 0.500, 0.500, 0.500, 0.500, -0.500, 0.500, -0.500) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `car::Anova(fit, type = "III")`</code></pre>
+<p>We see here we still don’t have enough power in some of the terms–let’s generate some new designs and see how many runs we need in order to reach 80% power everywhere.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2023</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">gen_design</span>(<span class="at">candidateset =</span> constrained_candidate_set,</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>           <span class="at">model =</span> <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="fu">I</span>(speed<span class="sc">^</span><span class="dv">2</span>) <span class="sc">+</span> <span class="fu">I</span>(altitude<span class="sc">^</span><span class="dv">2</span>),</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>           <span class="at">trials =</span> <span class="dv">100</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">eval_design</span>(<span class="at">alpha=</span><span class="fl">0.2</span>, <span class="at">effectsize =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##         parameter            type     power
+## 1     (Intercept)    effect.power 0.6282153
+## 2        altitude    effect.power 0.8433387
+## 3           speed    effect.power 0.9559134
+## 4            mode    effect.power 0.9907754
+## 5      I(speed^2)    effect.power 0.5978099
+## 6   I(altitude^2)    effect.power 0.6084643
+## 7  altitude:speed    effect.power 0.6047212
+## 8   altitude:mode    effect.power 0.8891265
+## 9      speed:mode    effect.power 0.9433138
+## 10    (Intercept) parameter.power 0.6282153
+## 11       altitude parameter.power 0.8433387
+## 12          speed parameter.power 0.9559134
+## 13          mode1 parameter.power 0.9851315
+## 14          mode2 parameter.power 0.9851012
+## 15     I(speed^2) parameter.power 0.5978099
+## 16  I(altitude^2) parameter.power 0.6084643
+## 17 altitude:speed parameter.power 0.6047212
+## 18 altitude:mode1 parameter.power 0.8761100
+## 19 altitude:mode2 parameter.power 0.8708975
+## 20    speed:mode1 parameter.power 0.9283013
+## 21    speed:mode2 parameter.power 0.9312056
+## ==============Evaluation Info==============
+## * Alpha = 0.2 * Trials = 100 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode + altitude:speed + altitude:mode + speed:mode + I(speed^2) + I(altitude^2) 
+## * Anticipated Coefficients = c(0.500, 0.500, 0.500, 0.500, -0.500, 0.500, 0.500, 0.500, 0.500, -0.500, 0.500, -0.500) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `car::Anova(fit, type = "III")`</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2023</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">gen_design</span>(<span class="at">candidateset =</span> constrained_candidate_set,</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>           <span class="at">model =</span> <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="fu">I</span>(speed<span class="sc">^</span><span class="dv">2</span>) <span class="sc">+</span> <span class="fu">I</span>(altitude<span class="sc">^</span><span class="dv">2</span>),</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>           <span class="at">trials =</span> <span class="dv">150</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">eval_design</span>(<span class="at">alpha=</span><span class="fl">0.2</span>, <span class="at">effectsize =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##         parameter            type     power
+## 1     (Intercept)    effect.power 0.7501838
+## 2        altitude    effect.power 0.9403180
+## 3           speed    effect.power 0.9922560
+## 4            mode    effect.power 0.9993906
+## 5      I(speed^2)    effect.power 0.7211095
+## 6   I(altitude^2)    effect.power 0.7310307
+## 7  altitude:speed    effect.power 0.7330595
+## 8   altitude:mode    effect.power 0.9669516
+## 9      speed:mode    effect.power 0.9882621
+## 10    (Intercept) parameter.power 0.7501838
+## 11       altitude parameter.power 0.9403180
+## 12          speed parameter.power 0.9922560
+## 13          mode1 parameter.power 0.9983660
+## 14          mode2 parameter.power 0.9984922
+## 15     I(speed^2) parameter.power 0.7211095
+## 16  I(altitude^2) parameter.power 0.7310307
+## 17 altitude:speed parameter.power 0.7330595
+## 18 altitude:mode1 parameter.power 0.9560368
+## 19 altitude:mode2 parameter.power 0.9550857
+## 20    speed:mode1 parameter.power 0.9807848
+## 21    speed:mode2 parameter.power 0.9821939
+## ==============Evaluation Info==============
+## * Alpha = 0.2 * Trials = 150 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode + altitude:speed + altitude:mode + speed:mode + I(speed^2) + I(altitude^2) 
+## * Anticipated Coefficients = c(0.500, 0.500, 0.500, 0.500, -0.500, 0.500, 0.500, 0.500, 0.500, -0.500, 0.500, -0.500) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `car::Anova(fit, type = "III")`</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2023</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">gen_design</span>(<span class="at">candidateset =</span> constrained_candidate_set,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>           <span class="at">model =</span> <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="fu">I</span>(speed<span class="sc">^</span><span class="dv">2</span>) <span class="sc">+</span> <span class="fu">I</span>(altitude<span class="sc">^</span><span class="dv">2</span>),</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>           <span class="at">trials =</span> <span class="dv">200</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">eval_design</span>(<span class="at">alpha=</span><span class="fl">0.2</span>, <span class="at">effectsize =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##         parameter            type     power
+## 1     (Intercept)    effect.power 0.8279661
+## 2        altitude    effect.power 0.9780989
+## 3           speed    effect.power 0.9984155
+## 4            mode    effect.power 0.9999690
+## 5      I(speed^2)    effect.power 0.8017438
+## 6   I(altitude^2)    effect.power 0.8120091
+## 7  altitude:speed    effect.power 0.8209540
+## 8   altitude:mode    effect.power 0.9916157
+## 9      speed:mode    effect.power 0.9978725
+## 10    (Intercept) parameter.power 0.8279661
+## 11       altitude parameter.power 0.9780989
+## 12          speed parameter.power 0.9984155
+## 13          mode1 parameter.power 0.9998473
+## 14          mode2 parameter.power 0.9998629
+## 15     I(speed^2) parameter.power 0.8017438
+## 16  I(altitude^2) parameter.power 0.8120091
+## 17 altitude:speed parameter.power 0.8209540
+## 18 altitude:mode1 parameter.power 0.9855181
+## 19 altitude:mode2 parameter.power 0.9860742
+## 20    speed:mode1 parameter.power 0.9952756
+## 21    speed:mode2 parameter.power 0.9956503
+## ==============Evaluation Info==============
+## * Alpha = 0.2 * Trials = 200 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode + altitude:speed + altitude:mode + speed:mode + I(speed^2) + I(altitude^2) 
+## * Anticipated Coefficients = c(0.500, 0.500, 0.500, 0.500, -0.500, 0.500, 0.500, 0.500, 0.500, -0.500, 0.500, -0.500) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `car::Anova(fit, type = "III")`</code></pre>
+<p>We can also include the effect of blocking terms by setting <code>blocking = TRUE</code>. This accounts for the split-plot structure and allows more accurate estimates of power for the hard-to-change terms, which will usually have lower power than the easy-to-change terms in the model.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>htc_design <span class="ot">=</span> <span class="fu">gen_design</span>(<span class="at">candidateset =</span> constrained_candidate_set,</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>                        <span class="at">model =</span> <span class="sc">~</span>target_env,</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">trials=</span><span class="dv">10</span>) </span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="fu">gen_design</span>(<span class="at">candidateset =</span> constrained_candidate_set,</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>             <span class="at">model =</span> <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode <span class="sc">+</span> target_env)<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="fu">I</span>(speed<span class="sc">^</span><span class="dv">2</span>) <span class="sc">+</span> <span class="fu">I</span>(altitude<span class="sc">^</span><span class="dv">2</span>),</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>             <span class="at">trials =</span> <span class="dv">200</span>, <span class="at">parallel =</span> <span class="cn">FALSE</span>, <span class="at">splitplotdesign =</span> htc_design, <span class="at">repeats =</span> <span class="dv">1</span>) <span class="ot">-&gt;</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>split_plot_design </span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="co">#Compare estimates </span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="fu">eval_design</span>(split_plot_design, <span class="at">alpha =</span> <span class="fl">0.2</span>, <span class="at">effectsize =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##               parameter            type     power
+## 1           (Intercept)    effect.power 0.4699707
+## 2              altitude    effect.power 0.9755689
+## 3                 speed    effect.power 0.9977338
+## 4                  mode    effect.power 0.9999651
+## 5            target_env    effect.power 0.5740785
+## 6            I(speed^2)    effect.power 0.7680466
+## 7         I(altitude^2)    effect.power 0.7856904
+## 8        altitude:speed    effect.power 0.8159483
+## 9         altitude:mode    effect.power 0.9930435
+## 10  altitude:target_env    effect.power 0.9999054
+## 11           speed:mode    effect.power 0.9979582
+## 12     speed:target_env    effect.power 0.9999898
+## 13      mode:target_env    effect.power 0.9999756
+## 14          (Intercept) parameter.power 0.4699707
+## 15             altitude parameter.power 0.9755689
+## 16                speed parameter.power 0.9977338
+## 17                mode1 parameter.power 0.9998445
+## 18                mode2 parameter.power 0.9998459
+## 19          target_env1 parameter.power 0.5740785
+## 20           I(speed^2) parameter.power 0.7680466
+## 21        I(altitude^2) parameter.power 0.7856904
+## 22       altitude:speed parameter.power 0.8159483
+## 23       altitude:mode1 parameter.power 0.9880052
+## 24       altitude:mode2 parameter.power 0.9879377
+## 25 altitude:target_env1 parameter.power 0.9999054
+## 26          speed:mode1 parameter.power 0.9956841
+## 27          speed:mode2 parameter.power 0.9956403
+## 28    speed:target_env1 parameter.power 0.9999898
+## 29    mode1:target_env1 parameter.power 0.9998848
+## 30    mode2:target_env1 parameter.power 0.9998852
+## =================Evaluation Info=================
+## * Alpha = 0.2 * Trials = 200 * Blocked = TRUE 
+## * Evaluating Model = ~altitude + speed + mode + target_env + altitude:speed + altitude:mode + altitude:target_env + speed:mode + speed:target_env + mode:target_env + I(speed^2) + I(altitude^2) 
+## * Anticipated Coefficients = c(0.500, 0.500, 0.500, 0.500, -0.500, 0.500, 0.500, 0.500, 0.500, 0.500, -0.500, 0.500, 0.500, -0.500, 0.500, 0.500, -0.500) 
+## * Number of Blocks = Level 1: 10 
+## * Variance Ratios  = Level 1: 1, Level 2: 1 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lme4::lmer(...)` 
+## * Effect Analysis Method = `car::Anova(fit, type = "III")`</code></pre>
+</section>
+<section id="calculate-power-curves" class="level1">
+<h1>Calculate Power Curves</h1>
+<p>skpr provides an easier and more informative method of exploring power than iteratively walking though different design sizes manually: the <code>calculate_power_curves()</code> function. This function automatically generates an optimal design for a given candidate set and number of runs, and plots the resulting power curves across all powers and effect sizes. Let’s see it in action:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>power_values <span class="ot">=</span> <span class="fu">calculate_power_curves</span>(<span class="at">trials =</span> <span class="fu">seq</span>(<span class="dv">10</span>,<span class="dv">200</span>,<span class="at">by=</span><span class="dv">10</span>),</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>                       <span class="at">candidateset =</span> constrained_candidate_set,</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>                       <span class="at">model =</span> <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="fu">I</span>(speed<span class="sc">^</span><span class="dv">2</span>) <span class="sc">+</span> <span class="fu">I</span>(altitude<span class="sc">^</span><span class="dv">2</span>),</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>                       <span class="at">effectsize =</span> <span class="dv">1</span>,</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>                       <span class="at">x_breaks =</span>  <span class="fu">seq</span>(<span class="dv">10</span>,<span class="dv">200</span>,<span class="at">by=</span><span class="dv">10</span>),</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>                       <span class="at">alpha =</span> <span class="fl">0.2</span>,</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>                       <span class="at">ggplot_elements =</span> <span class="fu">list</span>(<span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="fl">0.8</span>, </span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>                                                         <span class="at">alpha =</span> <span class="fl">0.5</span>, </span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>                                                         <span class="at">linetype =</span> <span class="st">"dashed"</span>, </span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>                                                         <span class="at">color =</span> <span class="st">"red"</span>, </span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>                                                         <span class="at">linewidth =</span> <span class="dv">1</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><img src="skpr_eval_design_live_demo_files/figure-html/unnamed-chunk-8-1.png" width="1152"></p>
+<p>This graph tells us a great deal about our test resource/model-complexity trade space: the two clustered groups of power curves delineates a clear decision we can make regarding resource allocation. If we aren’t actually interested in modelling curvature, we will have 80% power in all main effect terms and all interactions except <code>altitude:speed</code> at about 90 runs. Otherwise, we need to more than double our test resources to 200 runs to have an adequate test. Is 2x the number of experimental runs worth modeling curvature? Let’s say we have theoretical or historical justification that says it isn’t, and re-run our analysis with a smaller model.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>power_values <span class="ot">=</span> <span class="fu">calculate_power_curves</span>(<span class="at">trials =</span> <span class="fu">seq</span>(<span class="dv">10</span>,<span class="dv">200</span>,<span class="at">by=</span><span class="dv">10</span>),</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>                       <span class="at">candidateset =</span> constrained_candidate_set,</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>                       <span class="at">model =</span> <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>                       <span class="at">effectsize =</span> <span class="dv">1</span>,</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>                       <span class="at">x_breaks =</span>  <span class="fu">seq</span>(<span class="dv">10</span>,<span class="dv">200</span>,<span class="at">by=</span><span class="dv">10</span>),</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>                       <span class="at">alpha =</span> <span class="fl">0.2</span>,</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>                       <span class="at">ggplot_elements =</span> <span class="fu">list</span>(<span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="fl">0.8</span>, </span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>                                                         <span class="at">alpha =</span> <span class="fl">0.5</span>, </span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>                                                         <span class="at">linetype =</span> <span class="st">"dashed"</span>, </span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>                                                         <span class="at">color =</span> <span class="st">"red"</span>, </span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>                                                         <span class="at">linewidth =</span> <span class="dv">1</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><img src="skpr_eval_design_live_demo_files/figure-html/unnamed-chunk-9-1.png" width="1152"></p>
+<p>We now see we need about 120 runs to have a well-powered test for all main effects and interactions. Note that by removing the quadratic terms, the number of runs to estimate the <code>altitude:speed</code> interaction decreased greatly, from 200 to 120 runs. This shows that small changes to the model can have dramatic effects on power, even when you’re dealing with a relatively large test.</p>
+<p>You might have also noticed we have two different types of powers reported: “effect.power” and “parameter.power”. What’s the difference? Let’s see the slides.</p>
+<p>To better explain this, let’s make up some fake results for our test and simulate conducting an analysis to demonstrate in real-world terms what these types of power are actually referring to. We’ll generate some fake data and fit a linear model (using <code>lm()</code>) and . For both parameter and effect power, we need to specify a model: here, we’ll include all main effects and 2nd order interactions. Since we’re including interactions in our model, we should normalize the numeric terms in our model to -1 to 1, which helps prevent correlation between terms. We can do this with the skpr helper function <code>normalize_design()</code>.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>design_90runs <span class="ot">=</span> <span class="fu">gen_design</span>(<span class="at">candidateset =</span> constrained_candidate_set,</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>                            <span class="at">model =</span> <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>                            <span class="at">trials =</span> <span class="dv">72</span>)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="fu">eval_design</span>(design_90runs, <span class="at">effectsize =</span> <span class="dv">1</span>, <span class="at">alpha=</span><span class="fl">0.2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##         parameter            type     power
+## 1     (Intercept)    effect.power 0.9883613
+## 2        altitude    effect.power 0.7050435
+## 3           speed    effect.power 0.9913139
+## 4            mode    effect.power 0.9622582
+## 5  altitude:speed    effect.power 0.6500264
+## 6   altitude:mode    effect.power 0.8670089
+## 7      speed:mode    effect.power 0.9380883
+## 8     (Intercept) parameter.power 0.9883613
+## 9        altitude parameter.power 0.7050435
+## 10          speed parameter.power 0.9913139
+## 11          mode1 parameter.power 0.9506650
+## 12          mode2 parameter.power 0.9506650
+## 13 altitude:speed parameter.power 0.6500264
+## 14 altitude:mode1 parameter.power 0.8522629
+## 15 altitude:mode2 parameter.power 0.8522629
+## 16    speed:mode1 parameter.power 0.9243885
+## 17    speed:mode2 parameter.power 0.9243885
+## ==============Evaluation Info==============
+## * Alpha = 0.2 * Trials = 72 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode + altitude:speed + altitude:mode + speed:mode 
+## * Anticipated Coefficients = c(0.500, 0.500, 0.500, 0.500, -0.500, 0.500, 0.500, -0.500, 0.500, -0.500) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `car::Anova(fit, type = "III")`</code></pre>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Note the dramatic improvement in correlation when you standardize the numeric columns</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_correlations</span>(design_90runs, <span class="at">standardize =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><img src="skpr_eval_design_live_demo_files/figure-html/unnamed-chunk-10-1.png" width="672"></p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_correlations</span>(design_90runs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><img src="skpr_eval_design_live_demo_files/figure-html/unnamed-chunk-10-2.png" width="672"></p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">#So we will always normalize</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>simulated_results_design <span class="ot">=</span> <span class="fu">normalize_design</span>(design_90runs)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="co">#Create fake NIIRS results (where null hypothesis is true--no factor influences the response)</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>simulated_results_design<span class="sc">$</span>NIIRS <span class="ot">=</span> <span class="fu">rnorm</span>(<span class="at">n =</span> <span class="fu">nrow</span>(design_90runs), <span class="at">sd =</span> <span class="dv">1</span>, <span class="at">mean =</span> <span class="dv">4</span>)</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>simulated_results_design</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##      altitude      speed      mode    NIIRS
+## 1  -0.5555556  1.0000000      scan 3.439524
+## 2   1.0000000 -1.0000000      scan 3.769823
+## 3  -0.5555556  1.0000000 spotlight 5.558708
+## 4   1.0000000 -1.0000000 spotlight 4.070508
+## 5  -0.5555556  1.0000000     strip 4.129288
+## 6   0.1111111  1.0000000     strip 5.715065
+## 7   0.1111111  1.0000000 spotlight 4.460916
+## 8  -0.5555556  1.0000000      scan 2.734939
+## 9   0.1111111  1.0000000      scan 3.313147
+## 10  1.0000000 -1.0000000      scan 3.554338
+## 11  1.0000000 -1.0000000     strip 5.224082
+## 12 -1.0000000 -0.7777778     strip 4.359814
+## 13  1.0000000 -1.0000000 spotlight 4.400771
+## 14  1.0000000 -1.0000000 spotlight 4.110683
+## 15 -0.5555556  1.0000000 spotlight 3.444159
+## 16 -1.0000000 -0.7777778      scan 5.786913
+## 17 -1.0000000 -0.7777778     strip 4.497850
+## 18 -0.5555556  1.0000000     strip 2.033383
+## 19  0.1111111  1.0000000 spotlight 4.701356
+## 20  1.0000000 -1.0000000      scan 3.527209
+## 21  0.1111111  1.0000000     strip 2.932176
+## 22  1.0000000 -1.0000000     strip 3.782025
+## 23  0.1111111  1.0000000     strip 2.973996
+## 24 -0.5555556  1.0000000      scan 3.271109
+## 25 -0.5555556  1.0000000 spotlight 3.374961
+## 26 -1.0000000 -0.7777778 spotlight 2.313307
+## 27  1.0000000 -1.0000000 spotlight 4.837787
+## 28 -1.0000000 -0.7777778 spotlight 4.153373
+## 29  0.1111111  1.0000000      scan 2.861863
+## 30  1.0000000 -1.0000000      scan 5.253815
+## 31 -0.5555556  1.0000000     strip 4.426464
+## 32  1.0000000 -1.0000000 spotlight 3.704929
+## 33 -1.0000000 -0.7777778     strip 4.895126
+## 34  1.0000000 -1.0000000     strip 4.878133
+## 35 -1.0000000 -0.7777778      scan 4.821581
+## 36  0.1111111  1.0000000 spotlight 4.688640
+## 37 -0.5555556  1.0000000      scan 4.553918
+## 38  0.1111111  1.0000000      scan 3.938088
+## 39  1.0000000 -1.0000000     strip 3.694037
+## 40  1.0000000 -1.0000000     strip 3.619529
+## 41 -1.0000000 -0.7777778      scan 3.305293
+## 42 -1.0000000 -0.7777778 spotlight 3.792083
+## 43 -1.0000000 -0.7777778 spotlight 2.734604
+## 44  1.0000000 -1.0000000 spotlight 6.168956
+## 45 -0.5555556  1.0000000 spotlight 5.207962
+## 46 -0.5555556  1.0000000     strip 2.876891
+## 47 -1.0000000 -0.7777778     strip 3.597115
+## 48 -1.0000000 -0.7777778     strip 3.533345
+## 49  0.1111111  1.0000000 spotlight 4.779965
+## 50  1.0000000 -1.0000000      scan 3.916631
+## 51  0.1111111  1.0000000     strip 4.253319
+## 52 -1.0000000 -0.7777778      scan 3.971453
+## 53 -1.0000000 -0.7777778     strip 3.957130
+## 54 -0.5555556  1.0000000      scan 5.368602
+## 55 -1.0000000 -0.7777778 spotlight 3.774229
+## 56  0.1111111  1.0000000      scan 5.516471
+## 57 -1.0000000 -0.7777778 spotlight 2.451247
+## 58  1.0000000 -1.0000000     strip 4.584614
+## 59  1.0000000 -1.0000000      scan 4.123854
+## 60  1.0000000 -1.0000000 spotlight 4.215942
+## 61  0.1111111  1.0000000     strip 4.379639
+## 62  0.1111111  1.0000000      scan 3.497677
+## 63  0.1111111  1.0000000 spotlight 3.666793
+## 64 -1.0000000 -0.7777778      scan 2.981425
+## 65 -0.5555556  1.0000000 spotlight 2.928209
+## 66  1.0000000 -1.0000000      scan 4.303529
+## 67 -1.0000000 -0.7777778      scan 4.448210
+## 68 -0.5555556  1.0000000     strip 4.053004
+## 69  1.0000000 -1.0000000     strip 4.922267
+## 70 -1.0000000 -0.7777778     strip 6.050085
+## 71 -1.0000000 -0.7777778      scan 3.508969
+## 72 -1.0000000 -0.7777778 spotlight 1.690831</code></pre>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(<span class="at">formula =</span>  NIIRS <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>           <span class="at">data =</span> simulated_results_design) <span class="sc">|&gt;</span> </span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summary</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>## 
+## Call:
+## lm(formula = NIIRS ~ (altitude + speed + mode)^2, data = simulated_results_design)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -1.6837 -0.6327 -0.1341  0.4997  1.8692 
+## 
+## Coefficients:
+##                        Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)             3.99711    0.19650  20.341   &lt;2e-16 ***
+## altitude                0.03296    0.31018   0.106   0.9157    
+## speed                  -0.11924    0.20368  -0.585   0.5604    
+## modestrip               0.13618    0.26241   0.519   0.6056    
+## modespotlight           0.10550    0.26241   0.402   0.6890    
+## altitude:speed          0.10071    0.26725   0.377   0.7076    
+## altitude:modestrip      0.05943    0.33071   0.180   0.8580    
+## altitude:modespotlight  0.82296    0.33071   2.488   0.0155 *  
+## speed:modestrip        -0.18967    0.28329  -0.670   0.5057    
+## speed:modespotlight     0.50758    0.28329   1.792   0.0781 .  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.8946 on 62 degrees of freedom
+## Multiple R-squared:  0.2085, Adjusted R-squared:  0.09366 
+## F-statistic: 1.815 on 9 and 62 DF,  p-value: 0.08322</code></pre>
+<p>For parameter power, we see we get p-values telling us the significance of each factor. Importantly, regression also gives us coefficients for each model term, which allows us to characterize performance across the test space and make statements like “Traveling at speed X and altitude Y decreases or increases performance by N NIIRS points”.</p>
+<p>Effect power looks at the significance of the model terms themselves. Running an ANOVA is a subset of regression–we still fit a linear model–but ANOVA looks to see how much of the total variance is explained by each of the predictors.</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Now let's look at effect power--first, Type-III ANOVA</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(<span class="at">formula =</span>  NIIRS <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>   <span class="at">data =</span> simulated_results_design) <span class="sc">|&gt;</span> </span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  car<span class="sc">::</span><span class="fu">Anova</span>(<span class="at">type =</span> <span class="st">"III"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>## Anova Table (Type III tests)
+## 
+## Response: NIIRS
+##                Sum Sq Df   F value  Pr(&gt;F)    
+## (Intercept)    849.70  1 1061.6958 &lt; 2e-16 ***
+## altitude         1.43  1    1.7904 0.18576    
+## speed            0.01  1    0.0119 0.91334    
+## mode             0.24  2    0.1482 0.86254    
+## altitude:speed   0.11  1    0.1420 0.70757    
+## altitude:mode    6.17  2    3.8516 0.02650 *  
+## speed:mode       5.18  2    3.2387 0.04594 *  
+## Residuals       49.62 62                      
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+<p>Similarly, you can do a likelihood ratio test between two models (one with and one without the term in question) and see if the difference is significant.</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Example: p-value for altitude:mode is approximately 0.76--let's see what it is under a likelihood ratio test</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>formula_full <span class="ot">=</span>  NIIRS <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span> </span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>formula_reduced <span class="ot">=</span>  NIIRS <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span> <span class="sc">-</span> altitude<span class="sc">:</span>mode</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>fit_full <span class="ot">=</span> <span class="fu">lm</span>(<span class="at">formula =</span>  formula_full, <span class="at">data =</span> simulated_results_design)</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>fit_reduced <span class="ot">=</span> <span class="fu">lm</span>(<span class="at">formula =</span>  formula_reduced, <span class="at">data =</span> simulated_results_design)</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a><span class="co">#Compare the outputs of the two models</span></span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>diffobj<span class="sc">::</span><span class="fu">diffPrint</span>(<span class="fu">summary</span>(fit_full),<span class="fu">summary</span>(fit_reduced), <span class="at">interactive =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>## &lt; summary(fit_full)                      &gt; summary(fit_reduced)                 
+## @@ 1,35 @@                               @@ 1,31 @@                             
+##                                                                                 
+##   Call:                                    Call:                                
+## &lt; lm(formula = formula_full, data = sim  &gt; lm(formula = formula_reduced, data = 
+## : ulated_results_design)                 : simulated_results_design)            
+##                                                                                 
+##   Residuals:                               Residuals:                           
+##       Min      1Q  Median      3Q               Min       1Q   Median       3Q  
+## &lt; -1.6837 -0.6327 -0.1341  0.4997        &gt; -1.88022 -0.71321  0.03328  0.44536  
+##       Max                                       Max                             
+## &lt;  1.8692                                &gt;  2.18666                             
+##                                                                                 
+##   Coefficients:                            Coefficients:                        
+##                  Estimate Std. Error                      Estimate Std. Error   
+## &lt; (Intercept)     4.07767    0.12514     &gt; (Intercept)     4.07767    0.13060   
+## &lt; altitude        0.32708    0.24444     &gt; altitude        0.32708    0.25510   
+## &lt; speed          -0.01326    0.12139     &gt; speed          -0.01326    0.12668   
+## &lt; mode1          -0.08056    0.15150     &gt; mode1          -0.04761    0.15652   
+## &lt; mode2           0.05562    0.15150     &gt; mode2           0.08191    0.15652   
+## &lt; altitude:speed  0.10071    0.26725     &gt; altitude:speed  0.10071    0.27891   
+## &lt; altitude:mode1 -0.29413    0.19094     ~                                      
+## &lt; altitude:mode2 -0.23470    0.19094     ~                                      
+## &lt; speed:mode1    -0.10597    0.16356     &gt; speed:mode1    -0.04985    0.16640   
+## &lt; speed:mode2    -0.29564    0.16356     &gt; speed:mode2    -0.25086    0.16640   
+##                  t value Pr(&gt;|t|)                         t value Pr(&gt;|t|)      
+## &lt; (Intercept)     32.584   &lt;2e-16 ***    &gt; (Intercept)     31.222   &lt;2e-16 ***  
+## &lt; altitude         1.338   0.1858        &gt; altitude         1.282    0.204      
+## &lt; speed           -0.109   0.9133        &gt; speed           -0.105    0.917      
+## &lt; mode1           -0.532   0.5968        &gt; mode1           -0.304    0.762      
+## &lt; mode2            0.367   0.7148        &gt; mode2            0.523    0.603      
+## &lt; altitude:speed   0.377   0.7076        &gt; altitude:speed   0.361    0.719      
+## &lt; altitude:mode1  -1.540   0.1285        ~                                      
+## &lt; altitude:mode2  -1.229   0.2236        ~                                      
+## &lt; speed:mode1     -0.648   0.5194        &gt; speed:mode1     -0.300    0.765      
+## &lt; speed:mode2     -1.808   0.0755 .      &gt; speed:mode2     -1.508    0.137      
+##   ---                                      ---                                  
+##   Signif. codes:                           Signif. codes:                       
+## @@ 37,6 @@                               @@ 33,6 @@                             
+##     '.' 0.1 ' ' 1                            '.' 0.1 ' ' 1                      
+##                                                                                 
+## &lt; Residual standard error: 0.8946 on 62  &gt; Residual standard error: 0.9336 on 64
+## :  degrees of freedom                    :  degrees of freedom                  
+## &lt; Multiple R-squared:  0.2085,    Adjus  &gt; Multiple R-squared:  0.1102,    Adjus
+## : ted R-squared:  0.09366                : ted R-squared:  0.01289              
+## &lt; F-statistic: 1.815 on 9 and 62 DF,  p  &gt; F-statistic: 1.132 on 7 and 64 DF,  p
+## : -value: 0.08322                        : -value: 0.3543                       
+## </code></pre>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>lmtest<span class="sc">::</span><span class="fu">lrtest</span>(fit_full, fit_reduced)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>## Likelihood ratio test
+## 
+## Model 1: NIIRS ~ (altitude + speed + mode)^2
+## Model 2: NIIRS ~ (altitude + speed + mode)^2 - altitude:mode
+##   #Df  LogLik Df  Chisq Pr(&gt;Chisq)  
+## 1  11 -88.762                       
+## 2   9 -92.978 -2 8.4321    0.01476 *
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+<p>Notice we had some significant effects in both effect and parameter terms in our simulated model fit, even though we were fitting nothing but noise. Were these real, or just a result of our acceptable type-I error rate of 20%? To figure this out, we can repeat the process of fitting our design with noise and see if we end up with 20% of the runs being marked as significant by chance. We’ll do this with a simple <code>for</code> loop that repeatedly generates noise and fits the model and counts the number of times each term is marked as significant, and then divide this number by the total number of simulations.</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(<span class="at">formula =</span>  NIIRS <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>             <span class="at">data =</span> simulated_results_design) <span class="sc">|&gt;</span> </span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summary</span>() <span class="sc">|&gt;</span> </span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coef</span>() <span class="sc">|&gt;</span> </span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames</span>() <span class="ot">-&gt;</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>model_terms</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a><span class="co">#See model terms</span></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>model_terms</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##  [1] "(Intercept)"            "altitude"               "speed"                 
+##  [4] "modestrip"              "modespotlight"          "altitude:speed"        
+##  [7] "altitude:modestrip"     "altitude:modespotlight" "speed:modestrip"       
+## [10] "speed:modespotlight"</code></pre>
+<div class="sourceCode" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>is_significant <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">0</span>,<span class="fu">length</span>(model_terms))</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(is_significant) <span class="ot">=</span> model_terms</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>is_significant</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##            (Intercept)               altitude                  speed 
+##                      0                      0                      0 
+##              modestrip          modespotlight         altitude:speed 
+##                      0                      0                      0 
+##     altitude:modestrip altitude:modespotlight        speed:modestrip 
+##                      0                      0                      0 
+##    speed:modespotlight 
+##                      0</code></pre>
+<div class="sourceCode" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">1000</span>) {</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set.seed</span>(i)</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Create fake NIIRS results (where null hypothesis is true--no factor influences the response)</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  simulated_results_design<span class="sc">$</span>NIIRS <span class="ot">=</span> <span class="fu">rnorm</span>(<span class="at">n =</span> <span class="fu">nrow</span>(design_90runs), <span class="at">sd =</span> <span class="dv">1</span>, <span class="at">mean =</span> <span class="dv">4</span>)</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">lm</span>(<span class="at">formula =</span>  NIIRS <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>             <span class="at">data =</span> simulated_results_design) <span class="sc">|&gt;</span> </span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summary</span>() <span class="sc">|&gt;</span> </span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">coef</span>() <span class="ot">-&gt;</span></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>  fit_coefficients </span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>  pvals <span class="ot">=</span> fit_coefficients[,<span class="dv">4</span>] <span class="co">#p-values</span></span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Add 1 to the term if significant</span></span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>  is_significant <span class="ot">=</span> is_significant <span class="sc">+</span> <span class="fu">ifelse</span>(pvals <span class="sc">&lt;</span> <span class="fl">0.2</span>, <span class="dv">1</span>, <span class="dv">0</span>) </span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a><span class="co">#Without normalizing to the number of runs</span></span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>is_significant</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##            (Intercept)               altitude                  speed 
+##                   1000                    211                    209 
+##              modestrip          modespotlight         altitude:speed 
+##                    204                    200                    201 
+##     altitude:modestrip altitude:modespotlight        speed:modestrip 
+##                    194                    208                    188 
+##    speed:modespotlight 
+##                    205</code></pre>
+<div class="sourceCode" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Normalized</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>is_significant<span class="sc">/</span><span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##            (Intercept)               altitude                  speed 
+##                  1.000                  0.211                  0.209 
+##              modestrip          modespotlight         altitude:speed 
+##                  0.204                  0.200                  0.201 
+##     altitude:modestrip altitude:modespotlight        speed:modestrip 
+##                  0.194                  0.208                  0.188 
+##    speed:modespotlight 
+##                  0.205</code></pre>
+<p>We see that our model fitting process indeed marks all terms as significant about 20% of the time, as expected given our Type-I error value.</p>
+<p>What if we actually “activated” some of these effects? We can do this by shifting the simulated resulting NIIRS score proportional to the factors in the design matrix. Since the design is coded from -1 to 1 (a width of 2), we’ll set the coefficients for <code>speed</code>, <code>altitude</code>, and the interaction between <code>speed</code> and <code>altitude</code> to 0.5 to get an effect size of 1. This means that when the <code>altitude</code>, <code>speed</code>, and <code>altitude:speed</code> is at their highest values, we will see a shift of 1 NIIRS point compared to when they are at their lowest.</p>
+<div class="sourceCode" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">143</span>)</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="co">#Create fake NIIRS results (where altitude and speed and altitude:speed are active effects)</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>simulated_results_design<span class="sc">$</span>NIIRS <span class="ot">=</span> <span class="fu">rnorm</span>(<span class="at">n =</span> <span class="fu">nrow</span>(design_90runs), <span class="at">sd =</span> <span class="dv">1</span>, <span class="at">mean =</span> <span class="dv">4</span>) <span class="sc">+</span> </span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>  <span class="fl">0.5</span> <span class="sc">*</span> simulated_results_design<span class="sc">$</span>altitude <span class="sc">+</span> </span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>  <span class="fl">0.5</span> <span class="sc">*</span> simulated_results_design<span class="sc">$</span>speed <span class="sc">+</span></span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>  <span class="fl">0.5</span> <span class="sc">*</span> (simulated_results_design<span class="sc">$</span>speed <span class="sc">*</span> simulated_results_design<span class="sc">$</span>altitude)</span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(<span class="at">formula =</span>  NIIRS <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>           <span class="at">data =</span> simulated_results_design) <span class="sc">|&gt;</span> </span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summary</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>## 
+## Call:
+## lm(formula = NIIRS ~ (altitude + speed + mode)^2, data = simulated_results_design)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -1.84344 -0.83847  0.05234  0.79814  2.19733 
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)     4.27792    0.14735  29.032  &lt; 2e-16 ***
+## altitude        0.89446    0.28782   3.108  0.00284 ** 
+## speed           0.59914    0.14293   4.192 8.93e-05 ***
+## mode1           0.25154    0.17838   1.410  0.16350    
+## mode2          -0.17044    0.17838  -0.955  0.34305    
+## altitude:speed  0.80582    0.31468   2.561  0.01289 *  
+## altitude:mode1 -0.08552    0.22482  -0.380  0.70493    
+## altitude:mode2  0.08892    0.22482   0.396  0.69382    
+## speed:mode1    -0.06349    0.19258  -0.330  0.74276    
+## speed:mode2     0.10190    0.19258   0.529  0.59861    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 1.053 on 62 degrees of freedom
+## Multiple R-squared:  0.2724, Adjusted R-squared:  0.1668 
+## F-statistic: 2.579 on 9 and 62 DF,  p-value: 0.01364</code></pre>
+<p>After analyzing the data, we see all the terms were indeed marked as significant! To see if this was just a fluke, let’s repeat the process like we did before with new sets of noise.</p>
+<div class="sourceCode" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">contrasts =</span> <span class="fu">rep</span>(<span class="st">"contr.sum"</span>, <span class="dv">2</span>))   </span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(<span class="at">formula =</span>  NIIRS <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>             <span class="at">data =</span> simulated_results_design) <span class="sc">|&gt;</span> </span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summary</span>() <span class="sc">|&gt;</span> </span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coef</span>() <span class="sc">|&gt;</span> </span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames</span>() <span class="ot">-&gt;</span></span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>model_terms </span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>is_significant <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">0</span>,<span class="fu">length</span>(model_terms))</span>
+<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(is_significant) <span class="ot">=</span> model_terms</span>
+<span id="cb44-11"><a href="#cb44-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10000</span>) {</span>
+<span id="cb44-13"><a href="#cb44-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set.seed</span>(i) </span>
+<span id="cb44-14"><a href="#cb44-14" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Create fake NIIRS results (where altitude and speed and altitude:speed are active effects)</span></span>
+<span id="cb44-15"><a href="#cb44-15" aria-hidden="true" tabindex="-1"></a>  simulated_results_design<span class="sc">$</span>NIIRS <span class="ot">=</span> <span class="fu">rnorm</span>(<span class="at">n =</span> <span class="fu">nrow</span>(design_90runs), <span class="at">sd =</span> <span class="dv">1</span>, <span class="at">mean =</span> <span class="dv">4</span>) <span class="sc">+</span> </span>
+<span id="cb44-16"><a href="#cb44-16" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.5</span> <span class="sc">*</span> simulated_results_design<span class="sc">$</span>altitude <span class="sc">+</span> </span>
+<span id="cb44-17"><a href="#cb44-17" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.5</span> <span class="sc">*</span> simulated_results_design<span class="sc">$</span>speed <span class="sc">+</span></span>
+<span id="cb44-18"><a href="#cb44-18" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.5</span> <span class="sc">*</span> (simulated_results_design<span class="sc">$</span>speed <span class="sc">*</span> simulated_results_design<span class="sc">$</span>altitude)</span>
+<span id="cb44-19"><a href="#cb44-19" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb44-20"><a href="#cb44-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">lm</span>(<span class="at">formula =</span>  NIIRS <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb44-21"><a href="#cb44-21" aria-hidden="true" tabindex="-1"></a>             <span class="at">data =</span> simulated_results_design) <span class="sc">|&gt;</span> </span>
+<span id="cb44-22"><a href="#cb44-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summary</span>() <span class="sc">|&gt;</span> </span>
+<span id="cb44-23"><a href="#cb44-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">coef</span>() <span class="ot">-&gt;</span></span>
+<span id="cb44-24"><a href="#cb44-24" aria-hidden="true" tabindex="-1"></a>  fit_coefficients </span>
+<span id="cb44-25"><a href="#cb44-25" aria-hidden="true" tabindex="-1"></a>  pvals <span class="ot">=</span> fit_coefficients[,<span class="dv">4</span>] <span class="co">#p-values</span></span>
+<span id="cb44-26"><a href="#cb44-26" aria-hidden="true" tabindex="-1"></a>  is_significant <span class="ot">=</span> is_significant <span class="sc">+</span> <span class="fu">ifelse</span>(pvals <span class="sc">&lt;</span> <span class="fl">0.2</span>, <span class="dv">1</span>, <span class="dv">0</span>) </span>
+<span id="cb44-27"><a href="#cb44-27" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb44-28"><a href="#cb44-28" aria-hidden="true" tabindex="-1"></a>is_significant<span class="sc">/</span><span class="dv">10000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##    (Intercept)       altitude          speed          mode1          mode2 
+##         1.0000         0.7069         0.9917         0.2039         0.1994 
+## altitude:speed altitude:mode1 altitude:mode2    speed:mode1    speed:mode2 
+##         0.6493         0.1982         0.1983         0.1940         0.2033</code></pre>
+<div class="sourceCode" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval_design</span>(design_90runs, <span class="at">effectsize =</span> <span class="dv">1</span>, <span class="at">alpha=</span><span class="fl">0.2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##         parameter            type     power
+## 1     (Intercept)    effect.power 0.9883613
+## 2        altitude    effect.power 0.7050435
+## 3           speed    effect.power 0.9913139
+## 4            mode    effect.power 0.9622582
+## 5  altitude:speed    effect.power 0.6500264
+## 6   altitude:mode    effect.power 0.8670089
+## 7      speed:mode    effect.power 0.9380883
+## 8     (Intercept) parameter.power 0.9883613
+## 9        altitude parameter.power 0.7050435
+## 10          speed parameter.power 0.9913139
+## 11          mode1 parameter.power 0.9506650
+## 12          mode2 parameter.power 0.9506650
+## 13 altitude:speed parameter.power 0.6500264
+## 14 altitude:mode1 parameter.power 0.8522629
+## 15 altitude:mode2 parameter.power 0.8522629
+## 16    speed:mode1 parameter.power 0.9243885
+## 17    speed:mode2 parameter.power 0.9243885
+## ==============Evaluation Info==============
+## * Alpha = 0.2 * Trials = 72 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode + altitude:speed + altitude:mode + speed:mode 
+## * Anticipated Coefficients = c(0.500, 0.500, 0.500, 0.500, -0.500, 0.500, 0.500, -0.500, 0.500, -0.500) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `car::Anova(fit, type = "III")`</code></pre>
+<p>Note the our simulation produced values for <code>altitude</code>, <code>speed</code>, and <code>altitude:speed</code> that are almost identical to the parametric power values calculated with <code>eval_design()</code>! And that’s because, with this simulation, power is exactly what we’ve computed; we know an effect exists and we have computed the probability that we are able to detect it with our design and analysis methods, which is the definition of statistical power. We did this with what’s called a Monte Carlo technique: we used repeated random sampling to calculate our result, rather than developing an analytic solution for power. What’s really powerful about this method is how closely linked it is with the actual analysis techniques: we are using the exact same functions to generate power estimates that we plan on using during our actual analysis. This means we have a strong justification for these numbers being accurate, and we didn’t need to make any approximations or simplifying assumptions along the way.</p>
+<p>A Monte Carlo power interface has been implemented in skpr via the function <code>eval_design_mc()</code>: it automates the above process and automatically transforms your design into the correct format, runs the simulation using the specified effect size, and then fits the results depending on what type of analysis you intend on performing. Let’s check out the slides and then dive in.</p>
+</section>
+<section id="monte-carlo-power-evaluation" class="level1">
+<h1>Monte Carlo power evaluation</h1>
+<p><code>eval_design_mc()</code> has an identical interface to <code>eval_design()</code>, but with additional options to support far more types of responses, designs, and analytic methods. Let’s run through an example, first starting with an identical model to <code>eval_design()</code>.</p>
+<div class="sourceCode" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval_design</span>(<span class="at">design =</span> design_90runs,</span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>            <span class="at">model =</span> <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">alpha =</span> <span class="fl">0.2</span>,</span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>            <span class="at">effectsize =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##         parameter            type     power
+## 1     (Intercept)    effect.power 0.9883613
+## 2        altitude    effect.power 0.7050435
+## 3           speed    effect.power 0.9913139
+## 4            mode    effect.power 0.9622582
+## 5  altitude:speed    effect.power 0.6500264
+## 6   altitude:mode    effect.power 0.8670089
+## 7      speed:mode    effect.power 0.9380883
+## 8     (Intercept) parameter.power 0.9883613
+## 9        altitude parameter.power 0.7050435
+## 10          speed parameter.power 0.9913139
+## 11          mode1 parameter.power 0.9506650
+## 12          mode2 parameter.power 0.9506650
+## 13 altitude:speed parameter.power 0.6500264
+## 14 altitude:mode1 parameter.power 0.8522629
+## 15 altitude:mode2 parameter.power 0.8522629
+## 16    speed:mode1 parameter.power 0.9243885
+## 17    speed:mode2 parameter.power 0.9243885
+## ==============Evaluation Info==============
+## * Alpha = 0.2 * Trials = 72 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode + altitude:speed + altitude:mode + speed:mode 
+## * Anticipated Coefficients = c(0.500, 0.500, 0.500, 0.500, -0.500, 0.500, 0.500, -0.500, 0.500, -0.500) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `car::Anova(fit, type = "III")`</code></pre>
+<div class="sourceCode" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval_design_mc</span>(<span class="at">design =</span> design_90runs,</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>               <span class="at">model =</span> <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>               <span class="at">alpha =</span> <span class="fl">0.2</span>,</span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>               <span class="at">effectsize =</span> <span class="dv">1</span>,</span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>               <span class="at">glmfamily =</span> <span class="st">"gaussian"</span>,</span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>               <span class="at">nsim =</span> <span class="dv">100</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##         parameter               type power
+## 1     (Intercept)    effect.power.mc  0.98
+## 2        altitude    effect.power.mc  0.74
+## 3           speed    effect.power.mc  0.99
+## 4            mode    effect.power.mc  0.95
+## 5  altitude:speed    effect.power.mc  0.71
+## 6   altitude:mode    effect.power.mc  0.82
+## 7      speed:mode    effect.power.mc  0.91
+## 8     (Intercept) parameter.power.mc  0.98
+## 9        altitude parameter.power.mc  0.74
+## 10          speed parameter.power.mc  0.99
+## 11          mode1 parameter.power.mc  0.93
+## 12          mode2 parameter.power.mc  0.95
+## 13 altitude:speed parameter.power.mc  0.71
+## 14 altitude:mode1 parameter.power.mc  0.79
+## 15 altitude:mode2 parameter.power.mc  0.81
+## 16    speed:mode1 parameter.power.mc  0.89
+## 17    speed:mode2 parameter.power.mc  0.95
+## =============Evaluation Info==============
+## * Alpha = 0.2 * Trials = 72 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode + altitude:speed + altitude:mode + speed:mode 
+## * Anticipated Coefficients = c(0.500, 0.500, 0.500, 0.500, -0.500, 0.500, 0.500, -0.500, 0.500, -0.500) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `car::Anova(fit, type = "III")`</code></pre>
+<p>Since this is a Monte Carlo estimate of power, there is sampling error of magnitude <code>1/sqrt(100) = 0.1</code> associated with these estimates. To decrease this error, we can simply increase the number of simulations. Increasing <code>nsim</code> to 1000 will lower the magnitude of the error to 0.03.</p>
+<div class="sourceCode" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval_design_mc</span>(<span class="at">design =</span> design_90runs,</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>               <span class="at">model =</span> <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>               <span class="at">alpha =</span> <span class="fl">0.2</span>,</span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>               <span class="at">effectsize =</span> <span class="dv">1</span>,</span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>               <span class="at">glmfamily =</span> <span class="st">"gaussian"</span>,</span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a>               <span class="at">nsim =</span> <span class="dv">1000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##         parameter               type power
+## 1     (Intercept)    effect.power.mc 0.990
+## 2        altitude    effect.power.mc 0.715
+## 3           speed    effect.power.mc 0.998
+## 4            mode    effect.power.mc 0.971
+## 5  altitude:speed    effect.power.mc 0.667
+## 6   altitude:mode    effect.power.mc 0.858
+## 7      speed:mode    effect.power.mc 0.930
+## 8     (Intercept) parameter.power.mc 0.990
+## 9        altitude parameter.power.mc 0.715
+## 10          speed parameter.power.mc 0.998
+## 11          mode1 parameter.power.mc 0.965
+## 12          mode2 parameter.power.mc 0.953
+## 13 altitude:speed parameter.power.mc 0.667
+## 14 altitude:mode1 parameter.power.mc 0.851
+## 15 altitude:mode2 parameter.power.mc 0.854
+## 16    speed:mode1 parameter.power.mc 0.927
+## 17    speed:mode2 parameter.power.mc 0.913
+## =============Evaluation Info==============
+## * Alpha = 0.2 * Trials = 72 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode + altitude:speed + altitude:mode + speed:mode 
+## * Anticipated Coefficients = c(0.500, 0.500, 0.500, 0.500, -0.500, 0.500, 0.500, -0.500, 0.500, -0.500) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `car::Anova(fit, type = "III")`</code></pre>
+<p>The primary utility for <code>eval_design_mc()</code> isn’t with normal responses, however.</p>
+<p>If our response variable is binomial and we are evaluating a probability (such as the probability of correctly classifying an aircraft in our SAR image), we can use a generalized linear model to perform a logistic regression to estimate those probabilities directly. To estimate power for this model, we simply change <code>glmfamily</code> to <code>"binomial"</code> in <code>eval_design_mc()</code>, and specify our <code>effectsize</code> as a low and high probability. We’ll say here we are looking to detect when the probability of correctly classifying an aircraft in a SAR image changes from 0.50 to 0.90. There’s no closed-form solution for calculating this, but there are some approximate methods available. One common method is to calculate an approximate signal-to-noise ratio for the two probabilities and then perform a traditional power calculation using that SNR. How well does this work?</p>
+<div class="sourceCode" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Calculate SNR approximation using "logit" method</span></span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>high_prob <span class="ot">=</span> <span class="fl">0.9</span></span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>low_prob <span class="ot">=</span> <span class="fl">0.5</span></span>
+<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a>average_prob <span class="ot">=</span> (high_prob <span class="sc">+</span> low_prob)<span class="sc">/</span><span class="dv">2</span></span>
+<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-6"><a href="#cb54-6" aria-hidden="true" tabindex="-1"></a>delta <span class="ot">=</span> <span class="fu">abs</span>(<span class="fu">log</span>(low_prob<span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>low_prob)) <span class="sc">-</span> <span class="fu">log</span>(high_prob<span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>high_prob)))</span>
+<span id="cb54-7"><a href="#cb54-7" aria-hidden="true" tabindex="-1"></a>noise <span class="ot">=</span> <span class="fu">sqrt</span>(average_prob<span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>average_prob))</span>
+<span id="cb54-8"><a href="#cb54-8" aria-hidden="true" tabindex="-1"></a>snr_approximation <span class="ot">=</span> delta<span class="sc">/</span>noise</span>
+<span id="cb54-9"><a href="#cb54-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-10"><a href="#cb54-10" aria-hidden="true" tabindex="-1"></a><span class="fu">eval_design</span>(<span class="at">design =</span> design_90runs,</span>
+<span id="cb54-11"><a href="#cb54-11" aria-hidden="true" tabindex="-1"></a>             <span class="at">model =</span> <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb54-12"><a href="#cb54-12" aria-hidden="true" tabindex="-1"></a>             <span class="at">alpha =</span> <span class="fl">0.2</span>,</span>
+<span id="cb54-13"><a href="#cb54-13" aria-hidden="true" tabindex="-1"></a>             <span class="at">effectsize =</span> snr_approximation)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##         parameter            type     power
+## 1     (Intercept)    effect.power 0.9999347
+## 2        altitude    effect.power 0.9087872
+## 3           speed    effect.power 0.9999660
+## 4            mode    effect.power 0.9993413
+## 5  altitude:speed    effect.power 0.8665973
+## 6   altitude:mode    effect.power 0.9873736
+## 7      speed:mode    effect.power 0.9979037
+## 8     (Intercept) parameter.power 0.9999347
+## 9        altitude parameter.power 0.9087872
+## 10          speed parameter.power 0.9999660
+## 11          mode1 parameter.power 0.9983423
+## 12          mode2 parameter.power 0.9983423
+## 13 altitude:speed parameter.power 0.8665973
+## 14 altitude:mode1 parameter.power 0.9805725
+## 15 altitude:mode2 parameter.power 0.9805725
+## 16    speed:mode1 parameter.power 0.9956789
+## 17    speed:mode2 parameter.power 0.9956789
+## ==============Evaluation Info==============
+## * Alpha = 0.2 * Trials = 72 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode + altitude:speed + altitude:mode + speed:mode 
+## * Anticipated Coefficients = c(0.719, 0.719, 0.719, 0.719, -0.719, 0.719, 0.719, -0.719, 0.719, -0.719) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `car::Anova(fit, type = "III")`</code></pre>
+<div class="sourceCode" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval_design_mc</span>(<span class="at">design =</span> design_90runs,</span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>               <span class="at">model =</span> <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a>               <span class="at">alpha =</span> <span class="fl">0.2</span>,</span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a>               <span class="at">effectsize =</span> <span class="fu">c</span>(<span class="fl">0.5</span>,<span class="fl">0.9</span>),</span>
+<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a>               <span class="at">glmfamily =</span> <span class="st">"binomial"</span>, </span>
+<span id="cb56-6"><a href="#cb56-6" aria-hidden="true" tabindex="-1"></a>               <span class="at">nsim =</span> <span class="dv">1000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>## Warning in eval_design_mc(design = design_90runs, model = ~(altitude + speed +
+## : skpr: Partial or complete separation likely detected in the binomial Monte
+## Carlo simulation. Increase the number of runs in the design or decrease the
+## number of model parameters to improve power.</code></pre>
+<pre><code>##         parameter               type power
+## 1     (Intercept)    effect.power.mc 0.172
+## 2        altitude    effect.power.mc 0.104
+## 3           speed    effect.power.mc 0.175
+## 4            mode    effect.power.mc 0.340
+## 5  altitude:speed    effect.power.mc 0.349
+## 6   altitude:mode    effect.power.mc 0.305
+## 7      speed:mode    effect.power.mc 0.265
+## 8     (Intercept) parameter.power.mc 0.172
+## 9        altitude parameter.power.mc 0.104
+## 10          speed parameter.power.mc 0.175
+## 11          mode1 parameter.power.mc 0.121
+## 12          mode2 parameter.power.mc 0.172
+## 13 altitude:speed parameter.power.mc 0.349
+## 14 altitude:mode1 parameter.power.mc 0.166
+## 15 altitude:mode2 parameter.power.mc 0.165
+## 16    speed:mode1 parameter.power.mc 0.097
+## 17    speed:mode2 parameter.power.mc 0.146
+## =============Evaluation Info==============
+## * Alpha = 0.2 * Trials = 72 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode + altitude:speed + altitude:mode + speed:mode 
+## * Anticipated Coefficients = c(1.099, 1.099, 1.099, 1.099, -1.099, 1.099, 1.099, -1.099, 1.099, -1.099) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = glm(..., family = "binomial")` 
+## * Effect Analysis Method = `car::Anova(fit, type = "III")`</code></pre>
+<p>The calculated power values don’t match. Even worse, our power values are falling below our acceptable Type-I error rate of 0.2, which suggests a more fundamental issue is at play. A warning message after <code>eval_design_mc()</code> gives us a clue why: “Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.” Separation is an issue you can encounter in logistic regression when your model perfectly predicts the outcome for some combination of parameters and does not converge. The approximate method does not capture problems like this: you would only know about this issue if you ran a simulation ahead of time. And since we know about it, we can : let’s add a Firth correction to the logistic regression by setting <code>firth = TRUE</code>, which removes the issue of separation and allows the model to converge and give us useful power estimates. Since the Firth correction is more computationally expensive, we’ll also turn on parallel processing to speed up the computation.</p>
+<div class="sourceCode" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval_design_mc</span>(<span class="at">design =</span> design_90runs,</span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>               <span class="at">model =</span> <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a>               <span class="at">alpha =</span> <span class="fl">0.2</span>,</span>
+<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a>               <span class="at">effectsize =</span> <span class="fu">c</span>(<span class="fl">0.5</span>,<span class="fl">0.9</span>),</span>
+<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a>               <span class="at">glmfamily =</span> <span class="st">"binomial"</span>, </span>
+<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a>               <span class="at">firth =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb59-7"><a href="#cb59-7" aria-hidden="true" tabindex="-1"></a>               <span class="at">nsim =</span> <span class="dv">1000</span>, </span>
+<span id="cb59-8"><a href="#cb59-8" aria-hidden="true" tabindex="-1"></a>               <span class="at">parallel=</span><span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##         parameter               type power
+## 1        altitude    effect.power.mc 0.926
+## 2           speed    effect.power.mc 0.988
+## 3            mode    effect.power.mc 0.964
+## 4  altitude:speed    effect.power.mc 0.558
+## 5   altitude:mode    effect.power.mc 0.887
+## 6      speed:mode    effect.power.mc 0.754
+## 7     (Intercept) parameter.power.mc 0.899
+## 8        altitude parameter.power.mc 0.857
+## 9           speed parameter.power.mc 0.806
+## 10          mode1 parameter.power.mc 0.675
+## 11          mode2 parameter.power.mc 0.732
+## 12 altitude:speed parameter.power.mc 0.733
+## 13 altitude:mode1 parameter.power.mc 0.794
+## 14 altitude:mode2 parameter.power.mc 0.753
+## 15    speed:mode1 parameter.power.mc 0.742
+## 16    speed:mode2 parameter.power.mc 0.474
+## =============Evaluation Info==============
+## * Alpha = 0.2 * Trials = 72 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode + altitude:speed + altitude:mode + speed:mode 
+## * Anticipated Coefficients = c(1.099, 1.099, 1.099, 1.099, -1.099, 1.099, 1.099, -1.099, 1.099, -1.099) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = glm(..., family = "binomial", method = mbest::firthglm.fit)` 
+## * Effect Analysis Method = lmtest::lrtest(fit, fit_without_effect)`</code></pre>
+<p>Now we’ve improved our power substantially, but note that it still isn’t close to the extremely optimistic power values given using the approximate method.</p>
+</section>
+<section id="checking-for-type-i-error-inflation" class="level1">
+<h1>Checking for Type-I error inflation</h1>
+<p>Let’s say we get tasked to find the absolute bare-minimum test we could execute and still find adequate. As part of that tasking, you start playing with various design sizes, removing model terms, increasing effect sizes, and changing analysis methods to try and achieve 80% power. You discover you need at least 6 runs to fit any model, so you take that design and discover something interesting when you switch from a Type-III ANOVA to a likelihood ratio test for power evaluation:</p>
+<div class="sourceCode" id="cb61"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a><span class="fu">gen_design</span>(constrained_candidate_set, <span class="sc">~</span>altitude <span class="sc">+</span> speed <span class="sc">+</span> mode, <span class="at">trials=</span><span class="dv">6</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">eval_design_mc</span>(<span class="at">model =</span> <span class="sc">~</span> altitude <span class="sc">+</span> speed <span class="sc">+</span> mode,</span>
+<span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a>                 <span class="at">alpha=</span><span class="fl">0.2</span>, </span>
+<span id="cb61-5"><a href="#cb61-5" aria-hidden="true" tabindex="-1"></a>                 <span class="at">effect_anova =</span> <span class="cn">TRUE</span>, </span>
+<span id="cb61-6"><a href="#cb61-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">effectsize =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##     parameter               type power
+## 1 (Intercept)    effect.power.mc 0.517
+## 2    altitude    effect.power.mc 0.429
+## 3       speed    effect.power.mc 0.428
+## 4        mode    effect.power.mc 0.338
+## 5 (Intercept) parameter.power.mc 0.517
+## 6    altitude parameter.power.mc 0.429
+## 7       speed parameter.power.mc 0.428
+## 8       mode1 parameter.power.mc 0.398
+## 9       mode2 parameter.power.mc 0.410
+## ===========Evaluation Info============
+## * Alpha = 0.2 * Trials = 6 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode 
+## * Anticipated Coefficients = c(1, 1, 1, 1, -1) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `car::Anova(fit, type = "III")`</code></pre>
+<div class="sourceCode" id="cb63"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a><span class="co">#Now calculate effect power with a likelihood ratio test</span></span>
+<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a><span class="fu">gen_design</span>(constrained_candidate_set, <span class="sc">~</span>altitude <span class="sc">+</span> speed <span class="sc">+</span> mode, <span class="at">trials=</span><span class="dv">6</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">eval_design_mc</span>(<span class="at">model =</span> <span class="sc">~</span> altitude <span class="sc">+</span> speed <span class="sc">+</span> mode,</span>
+<span id="cb63-5"><a href="#cb63-5" aria-hidden="true" tabindex="-1"></a>                 <span class="at">alpha=</span><span class="fl">0.2</span>, </span>
+<span id="cb63-6"><a href="#cb63-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">effect_anova =</span> <span class="cn">FALSE</span>, </span>
+<span id="cb63-7"><a href="#cb63-7" aria-hidden="true" tabindex="-1"></a>                 <span class="at">effectsize =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##     parameter               type power
+## 1    altitude    effect.power.mc 0.929
+## 2       speed    effect.power.mc 0.924
+## 3        mode    effect.power.mc 0.921
+## 4 (Intercept) parameter.power.mc 0.517
+## 5    altitude parameter.power.mc 0.429
+## 6       speed parameter.power.mc 0.428
+## 7       mode1 parameter.power.mc 0.398
+## 8       mode2 parameter.power.mc 0.410
+## ===========Evaluation Info============
+## * Alpha = 0.2 * Trials = 6 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode 
+## * Anticipated Coefficients = c(1, 1, 1, 1, -1) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `lmtest::lrtest(fit, fit_without_effect)`</code></pre>
+<p>Here, we see the likelihood ratio test is giving effect power values above 90% at only 6 runs! I did mention earlier that some analytic methods are more powerful than others: is that what’s going on here? To find out, let’s do a sanity check on our Type-I error rate. As I mentioned earlier, power depends on several inputs. One of them is your Type-I error rate, which is set by the tester ahead of time. Or is it? Let’s check the Type-I error rate by setting <code>effectsize = 0</code>: we’re testing the power when the null hypothesis is true. We’ll do this for both the Type-III ANOVA effect power and the likelihood ratio test power calculations.</p>
+<div class="sourceCode" id="cb65"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a><span class="fu">gen_design</span>(constrained_candidate_set, <span class="sc">~</span>altitude <span class="sc">+</span> speed <span class="sc">+</span> mode, <span class="at">trials=</span><span class="dv">6</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">eval_design_mc</span>(<span class="at">model =</span> <span class="sc">~</span> altitude <span class="sc">+</span> speed <span class="sc">+</span> mode,</span>
+<span id="cb65-4"><a href="#cb65-4" aria-hidden="true" tabindex="-1"></a>                 <span class="at">alpha=</span><span class="fl">0.2</span>, </span>
+<span id="cb65-5"><a href="#cb65-5" aria-hidden="true" tabindex="-1"></a>                 <span class="at">effect_anova =</span> <span class="cn">TRUE</span>, </span>
+<span id="cb65-6"><a href="#cb65-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">effectsize =</span> <span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##     parameter               type power
+## 1 (Intercept)    effect.power.mc 0.204
+## 2    altitude    effect.power.mc 0.199
+## 3       speed    effect.power.mc 0.194
+## 4        mode    effect.power.mc 0.197
+## 5 (Intercept) parameter.power.mc 0.204
+## 6    altitude parameter.power.mc 0.199
+## 7       speed parameter.power.mc 0.194
+## 8       mode1 parameter.power.mc 0.200
+## 9       mode2 parameter.power.mc 0.200
+## ===========Evaluation Info============
+## * Alpha = 0.2 * Trials = 6 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode 
+## * Anticipated Coefficients = c(0, 0, 0, 0, -0) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `car::Anova(fit, type = "III")`</code></pre>
+<div class="sourceCode" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a><span class="fu">gen_design</span>(constrained_candidate_set, <span class="sc">~</span>altitude <span class="sc">+</span> speed <span class="sc">+</span> mode, <span class="at">trials=</span><span class="dv">6</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">eval_design_mc</span>(<span class="at">model =</span> <span class="sc">~</span> altitude <span class="sc">+</span> speed <span class="sc">+</span> mode,</span>
+<span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a>                 <span class="at">alpha=</span><span class="fl">0.2</span>, </span>
+<span id="cb67-5"><a href="#cb67-5" aria-hidden="true" tabindex="-1"></a>                 <span class="at">effect_anova =</span> <span class="cn">FALSE</span>, </span>
+<span id="cb67-6"><a href="#cb67-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">effectsize =</span> <span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##     parameter               type power
+## 1    altitude    effect.power.mc 0.638
+## 2       speed    effect.power.mc 0.672
+## 3        mode    effect.power.mc 0.760
+## 4 (Intercept) parameter.power.mc 0.204
+## 5    altitude parameter.power.mc 0.199
+## 6       speed parameter.power.mc 0.194
+## 7       mode1 parameter.power.mc 0.200
+## 8       mode2 parameter.power.mc 0.200
+## ===========Evaluation Info============
+## * Alpha = 0.2 * Trials = 6 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode 
+## * Anticipated Coefficients = c(0, 0, 0, 0, -0) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `lmtest::lrtest(fit, fit_without_effect)`</code></pre>
+<p>Our Type-I error rate for the likelihood ratio test is close to 75%! That means that we are incorrectly calling the system effective 75% of the time–a terrible outcome. Let’s see what’s going on by plotting Type-I error as a function of sample size. We can use <code>eval_design_mc()</code> in <code>calculate_power_curves()</code> simply by specifying <code>eval_function = "eval_design_mc"</code> and the arguments in <code>eval_args</code>.</p>
+<div class="sourceCode" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a>power_values <span class="ot">=</span> <span class="fu">calculate_power_curves</span>(<span class="at">trials =</span> <span class="fu">seq</span>(<span class="dv">6</span>,<span class="dv">30</span>,<span class="at">by=</span><span class="dv">2</span>),</span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a>                       <span class="at">candidateset =</span> constrained_candidate_set,</span>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a>                       <span class="at">model =</span> <span class="sc">~</span> altitude <span class="sc">+</span> speed <span class="sc">+</span> mode,</span>
+<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a>                       <span class="at">alpha =</span> <span class="fl">0.2</span>,</span>
+<span id="cb69-5"><a href="#cb69-5" aria-hidden="true" tabindex="-1"></a>                       <span class="at">effectsize =</span> <span class="dv">0</span>, </span>
+<span id="cb69-6"><a href="#cb69-6" aria-hidden="true" tabindex="-1"></a>                       <span class="at">eval_function =</span> <span class="st">"eval_design_mc"</span>,</span>
+<span id="cb69-7"><a href="#cb69-7" aria-hidden="true" tabindex="-1"></a>                       <span class="at">x_breaks =</span>  <span class="fu">seq</span>(<span class="dv">6</span>,<span class="dv">30</span>,<span class="at">by=</span><span class="dv">2</span>),</span>
+<span id="cb69-8"><a href="#cb69-8" aria-hidden="true" tabindex="-1"></a>                       <span class="at">eval_args =</span> <span class="fu">list</span>(<span class="at">nsim=</span><span class="dv">1000</span>, <span class="at">effect_anova =</span> <span class="cn">FALSE</span>),</span>
+<span id="cb69-9"><a href="#cb69-9" aria-hidden="true" tabindex="-1"></a>                       <span class="at">ggplot_elements =</span> <span class="fu">list</span>(<span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="fl">0.8</span>, </span>
+<span id="cb69-10"><a href="#cb69-10" aria-hidden="true" tabindex="-1"></a>                                                         <span class="at">alpha =</span> <span class="fl">0.5</span>, </span>
+<span id="cb69-11"><a href="#cb69-11" aria-hidden="true" tabindex="-1"></a>                                                         <span class="at">linetype =</span> <span class="st">"dashed"</span>, </span>
+<span id="cb69-12"><a href="#cb69-12" aria-hidden="true" tabindex="-1"></a>                                                         <span class="at">color =</span> <span class="st">"red"</span>, </span>
+<span id="cb69-13"><a href="#cb69-13" aria-hidden="true" tabindex="-1"></a>                                                         <span class="at">linewidth =</span> <span class="dv">1</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><img src="skpr_eval_design_live_demo_files/figure-html/unnamed-chunk-22-1.png" width="1152"></p>
+<p>We see at low sample sizes, we our Type-I error rate is severely inflated with the likelihood ratio test. This is because the likelihood ratio test is based on an approximation of the log-likelihood to a chi-squared distribution, and that approximation fails at low sample sizes. We can correct that in skpr by setting <code>adjust_alpha_inflation = TRUE</code>, which runs the simulation twice: first to calculate the empirical distribution of p-values under the null hypothesis and find the true Type-I error cutoff that corresponds to your desired Type-I error rate, and then again with the actual effect size input by the user. Let’s see how that works:</p>
+<div class="sourceCode" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a><span class="fu">gen_design</span>(constrained_candidate_set, <span class="sc">~</span>altitude <span class="sc">+</span> speed <span class="sc">+</span> mode, <span class="at">trials=</span><span class="dv">6</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">eval_design_mc</span>(<span class="at">model =</span> <span class="sc">~</span> altitude <span class="sc">+</span> speed <span class="sc">+</span> mode,</span>
+<span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a>                 <span class="at">alpha=</span><span class="fl">0.2</span>, </span>
+<span id="cb70-5"><a href="#cb70-5" aria-hidden="true" tabindex="-1"></a>                 <span class="at">effect_anova =</span> <span class="cn">FALSE</span>, <span class="at">adjust_alpha_inflation =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb70-6"><a href="#cb70-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">effectsize =</span> <span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##     parameter               type power
+## 1    altitude    effect.power.mc 0.199
+## 2       speed    effect.power.mc 0.203
+## 3        mode    effect.power.mc 0.195
+## 4 (Intercept) parameter.power.mc 0.199
+## 5    altitude parameter.power.mc 0.194
+## 6       speed parameter.power.mc 0.200
+## 7       mode1 parameter.power.mc 0.203
+## 8       mode2 parameter.power.mc 0.197
+## ===========Evaluation Info============
+## * Alpha = 0.2 * Trials = 6 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode 
+## * Anticipated Coefficients = c(0, 0, 0, 0, -0) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `lmtest::lrtest(fit, fit_without_effect)`</code></pre>
+<div class="sourceCode" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a><span class="fu">gen_design</span>(constrained_candidate_set, <span class="sc">~</span>altitude <span class="sc">+</span> speed <span class="sc">+</span> mode, <span class="at">trials=</span><span class="dv">6</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">eval_design_mc</span>(<span class="at">model =</span> <span class="sc">~</span> altitude <span class="sc">+</span> speed <span class="sc">+</span> mode,</span>
+<span id="cb72-4"><a href="#cb72-4" aria-hidden="true" tabindex="-1"></a>                 <span class="at">alpha=</span><span class="fl">0.2</span>, </span>
+<span id="cb72-5"><a href="#cb72-5" aria-hidden="true" tabindex="-1"></a>                 <span class="at">effect_anova =</span> <span class="cn">FALSE</span>, <span class="at">adjust_alpha_inflation =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb72-6"><a href="#cb72-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">effectsize =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##     parameter               type power
+## 1    altitude    effect.power.mc 0.443
+## 2       speed    effect.power.mc 0.456
+## 3        mode    effect.power.mc 0.329
+## 4 (Intercept) parameter.power.mc 0.538
+## 5    altitude parameter.power.mc 0.432
+## 6       speed parameter.power.mc 0.449
+## 7       mode1 parameter.power.mc 0.390
+## 8       mode2 parameter.power.mc 0.390
+## ===========Evaluation Info============
+## * Alpha = 0.2 * Trials = 6 * Blocked = FALSE 
+## * Evaluating Model = ~altitude + speed + mode 
+## * Anticipated Coefficients = c(1, 1, 1, 1, -1) 
+## * Contrasts = `contr.sum` 
+## * Parameter Analysis Method = `lm(...)` 
+## * Effect Analysis Method = `lmtest::lrtest(fit, fit_without_effect)`</code></pre>
+<div class="sourceCode" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>) {</span>
+<span id="cb74-3"><a href="#cb74-3" aria-hidden="true" tabindex="-1"></a><span class="fu">gen_design</span>(constrained_candidate_set, <span class="sc">~</span>altitude <span class="sc">+</span> speed <span class="sc">+</span> mode, <span class="at">trials=</span><span class="dv">6</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb74-4"><a href="#cb74-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">eval_design_mc</span>(<span class="at">model =</span> <span class="sc">~</span> altitude <span class="sc">+</span> speed <span class="sc">+</span> mode,</span>
+<span id="cb74-5"><a href="#cb74-5" aria-hidden="true" tabindex="-1"></a>                 <span class="at">alpha=</span><span class="fl">0.2</span>, </span>
+<span id="cb74-6"><a href="#cb74-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">effect_anova =</span> <span class="cn">TRUE</span>, </span>
+<span id="cb74-7"><a href="#cb74-7" aria-hidden="true" tabindex="-1"></a>                 <span class="at">effectsize =</span> <span class="dv">2</span>)</span>
+<span id="cb74-8"><a href="#cb74-8" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>We see when we adjust for Type-I error inflation, the power “advantage” for the likelihood ratio test disappears. Type-I error inflation occurs all the time, particularly with blocking and split-plot designs, so I recommend always checking Type-I error as part of your DOE workflow: it only takes a minute and serves as a sanity check if your numbers seem too good to be true.</p>
+</section>
+<section id="final-analysis" class="level1">
+<h1>Final analysis</h1>
+<p>Let’s put this all together. We decide to use a model with all interactions, and also investigate two different effect sizes for an objective and a threshold requirement. We’re doing a Monte Carlo simulation with 100 simulations and a binomial response, and we want to see at what point from 30 to 360 runs we reach 80% power for all model terms. We can do this entire analysis in a single call to <code>calculate_power_curves()</code>.</p>
+<div class="sourceCode" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2023</span>)</span>
+<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a>power_values <span class="ot">=</span> <span class="fu">calculate_power_curves</span>(<span class="at">trials =</span> <span class="fu">seq</span>(<span class="dv">30</span>,<span class="dv">360</span>,<span class="at">by=</span><span class="dv">30</span>),</span>
+<span id="cb75-3"><a href="#cb75-3" aria-hidden="true" tabindex="-1"></a>                       <span class="at">candidateset =</span> constrained_candidate_set,</span>
+<span id="cb75-4"><a href="#cb75-4" aria-hidden="true" tabindex="-1"></a>                       <span class="at">model =</span> <span class="sc">~</span> (altitude <span class="sc">+</span> speed <span class="sc">+</span> mode)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb75-5"><a href="#cb75-5" aria-hidden="true" tabindex="-1"></a>                       <span class="at">alpha =</span> <span class="fl">0.2</span>,</span>
+<span id="cb75-6"><a href="#cb75-6" aria-hidden="true" tabindex="-1"></a>                       <span class="at">effectsize =</span> <span class="fu">list</span>(<span class="fu">c</span>(<span class="fl">0.5</span>,<span class="fl">0.9</span>), <span class="fu">c</span>(<span class="fl">0.7</span>,<span class="fl">0.9</span>)), </span>
+<span id="cb75-7"><a href="#cb75-7" aria-hidden="true" tabindex="-1"></a>                       <span class="at">eval_function =</span> <span class="st">"eval_design_mc"</span>,</span>
+<span id="cb75-8"><a href="#cb75-8" aria-hidden="true" tabindex="-1"></a>                       <span class="at">eval_args =</span> <span class="fu">list</span>(<span class="at">nsim=</span><span class="dv">1000</span>, <span class="at">glmfamily =</span> <span class="st">"binomial"</span>),</span>
+<span id="cb75-9"><a href="#cb75-9" aria-hidden="true" tabindex="-1"></a>                       <span class="at">x_breaks =</span> <span class="fu">seq</span>(<span class="dv">30</span>,<span class="dv">360</span>,<span class="at">by=</span><span class="dv">30</span>),</span>
+<span id="cb75-10"><a href="#cb75-10" aria-hidden="true" tabindex="-1"></a>                       <span class="at">ggplot_elements =</span> <span class="fu">list</span>(<span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="fl">0.8</span>, </span>
+<span id="cb75-11"><a href="#cb75-11" aria-hidden="true" tabindex="-1"></a>                                                         <span class="at">alpha =</span> <span class="fl">0.5</span>, </span>
+<span id="cb75-12"><a href="#cb75-12" aria-hidden="true" tabindex="-1"></a>                                                         <span class="at">linetype =</span> <span class="st">"dashed"</span>, </span>
+<span id="cb75-13"><a href="#cb75-13" aria-hidden="true" tabindex="-1"></a>                                                         <span class="at">color =</span> <span class="st">"red"</span>, </span>
+<span id="cb75-14"><a href="#cb75-14" aria-hidden="true" tabindex="-1"></a>                                                         <span class="at">linewidth =</span> <span class="dv">1</span>))) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><img src="skpr_eval_design_live_demo_files/figure-html/unnamed-chunk-24-1.png" width="1152"></p>
+<div class="sourceCode" id="cb76"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(power_values, <span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>##         parameter               type power trials effectsize_low
+## 1     (Intercept)    effect.power.mc 0.005     30            0.5
+## 2        altitude    effect.power.mc 0.001     30            0.5
+## 3           speed    effect.power.mc 0.003     30            0.5
+## 4            mode    effect.power.mc 0.003     30            0.5
+## 5  altitude:speed    effect.power.mc 0.014     30            0.5
+## 6   altitude:mode    effect.power.mc 0.007     30            0.5
+## 7      speed:mode    effect.power.mc 0.004     30            0.5
+## 8     (Intercept) parameter.power.mc 0.005     30            0.5
+## 9        altitude parameter.power.mc 0.001     30            0.5
+## 10          speed parameter.power.mc 0.003     30            0.5
+##    effectsize_high random_seed
+## 1              0.9         123
+## 2              0.9         123
+## 3              0.9         123
+## 4              0.9         123
+## 5              0.9         123
+## 6              0.9         123
+## 7              0.9         123
+## 8              0.9         123
+## 9              0.9         123
+## 10             0.9         123
+## Power curve generation captured the following warning/error messages:
+## Function   | Type | N  | Message
+## Evaluation | Warn | 24 | Message: 'skpr: Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.'</code></pre>
+<p>This analysis shows that we would need around 300 runs at an effect size of 0.5 to 0.9 and if we wanted to be able to estimate all terms in the model with 80% power. At the objective requirement of 0.7 to 0.9, we don’t see some model terms crossing 80% power even at 360 runs.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

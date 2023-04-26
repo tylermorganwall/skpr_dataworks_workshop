@@ -1,0 +1,27 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Design of Experiments in R with skpr"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: R_basics_tutorial.html
+        text: R Basics Tutorial
+      - href: skpr_gen_design_live_demo.html
+        text: Generating Optimal Designs with skpr
+      - href: skpr_eval_design_live_demo.html
+        text: Evaluating Experimental Designs with skpr
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+
+editor: visual
+
+execute:
+  cache: true
